@@ -190,6 +190,27 @@ export default function GlobalGamesComponent({ token, playtestMode, setPlaytestM
     </div>
   );
 
+  const completePlaytests = playtests.filter(pt => pt.status === "Complete")
+    // Sort by descending score
+    .sort((a, b) => {
+      const aScore = a.artScore + a.audioScore + a.creativityScore + a.moodScore + a.funScore;
+      const bScore = b.artScore + b.audioScore + b.creativityScore + b.moodScore + b.funScore;
+      return bScore - aScore;
+    });
+  const pendingPlaytests = playtests.filter(pt => pt.status !== "Complete")
+    .sort((a, b) => {
+      if(a.createdAt === b.createdAt) return 0;
+
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+
+      if (isNaN(dateA) && isNaN(dateB)) return 0; // both invalid
+      if (isNaN(dateA)) return 1;
+      if (isNaN(dateB)) return -1;
+      
+      return dateB - dateA; // most recent first
+    });
+
   return (
     <div className="global-area" style={{ width: '100vw', minHeight: '100vh', position: 'relative', overflow: 'visible' }}>
       <div className="global-background"></div>
@@ -364,51 +385,107 @@ export default function GlobalGamesComponent({ token, playtestMode, setPlaytestM
                   {playtestsError}
                 </p>
               </div>
-            ) : playtests.length > 0 ? (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 16,
-                  marginBottom: 20,
-                  width: '100%',
-                  maxWidth: 1000,
-                }}
-              >
-                {playtests.map((playtest, idx) => (
-                  <PlaytestTicket 
-                    key={playtest.id || idx} 
-                    playtest={playtest} 
-                    onPlaytestClick={(playtest) => {
-                      if (setPlaytestMode && setSelectedPlaytestGame) {
-                        setSelectedPlaytestGame({
-                          gameName: playtest.gameName,
-                          gameLink: playtest.gameLink,
-                          gameThumbnail: playtest.gameThumbnail,
-                          playtestId: playtest.playtestId,
-                          instructions: playtest.instructions,
-                          HoursSpent: playtest.HoursSpent,
-                          ownerSlackId: playtest.ownerSlackId
-                        });
-                        setPlaytestMode(true);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
             ) : (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: 40, 
-                maxWidth: 600,
-                background: 'rgba(255,255,255,0.1)', 
-                borderRadius: 12,
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}>
-                <p style={{ color: '#fff', opacity: 0.7, fontSize: 16 }}>
-                  No playtests assigned yet. Check back later!
-                </p>
-              </div>
+              <>
+                {/* pending playtests */}
+                <div style={{ width: '100%', maxWidth: 1000, marginBottom: 32 }}>
+                  <h2 style={{ color: '#fff', marginBottom: 8, fontSize: 20 }}>Pending playtests ({pendingPlaytests.length})</h2>
+                  {pendingPlaytests.length > 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                        marginBottom: 20,
+                        width: '100%',
+                      }}
+                    >
+                      {pendingPlaytests.map((playtest, idx) => (
+                        <PlaytestTicket 
+                          key={playtest.id || idx} 
+                          playtest={playtest} 
+                          onPlaytestClick={(playtest) => {
+                            if (setPlaytestMode && setSelectedPlaytestGame) {
+                              setSelectedPlaytestGame({
+                                gameName: playtest.gameName,
+                                gameLink: playtest.gameLink,
+                                gameThumbnail: playtest.gameThumbnail,
+                                playtestId: playtest.playtestId,
+                                instructions: playtest.instructions,
+                                HoursSpent: playtest.HoursSpent,
+                                ownerSlackId: playtest.ownerSlackId
+                              });
+                              setPlaytestMode(true);
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: 32, 
+                      background: 'rgba(255,255,255,0.07)', 
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.13)',
+                      color: '#fff',
+                      opacity: 0.7,
+                      fontSize: 16
+                    }}>
+                      No pending playtests!
+                    </div>
+                  )}
+                </div>
+                {/* complete playtests */}
+                <div style={{ width: '100%', maxWidth: 1000 }}>
+                  <h2 style={{ color: '#fff', marginBottom: 8, fontSize: 20 }}>Complete playtests ({completePlaytests.length})</h2>
+                  {completePlaytests.length > 0 ? (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16,
+                        marginBottom: 20,
+                        width: '100%',
+                      }}
+                    >
+                      {completePlaytests.map((playtest, idx) => (
+                        <PlaytestTicket 
+                          key={playtest.id || idx} 
+                          playtest={playtest} 
+                          onPlaytestClick={(playtest) => {
+                            if (setPlaytestMode && setSelectedPlaytestGame) {
+                              setSelectedPlaytestGame({
+                                gameName: playtest.gameName,
+                                gameLink: playtest.gameLink,
+                                gameThumbnail: playtest.gameThumbnail,
+                                playtestId: playtest.playtestId,
+                                instructions: playtest.instructions,
+                                HoursSpent: playtest.HoursSpent,
+                                ownerSlackId: playtest.ownerSlackId
+                              });
+                              setPlaytestMode(true);
+                            }
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: 32, 
+                      background: 'rgba(255,255,255,0.07)', 
+                      borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.13)',
+                      color: '#fff',
+                      opacity: 0.7,
+                      fontSize: 16
+                    }}>
+                      No complete playtests yet.
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
