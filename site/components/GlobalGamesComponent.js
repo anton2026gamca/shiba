@@ -208,7 +208,7 @@ export default function GlobalGamesComponent({ token, playtestMode, setPlaytestM
       if (isNaN(dateA)) return 1;
       if (isNaN(dateB)) return -1;
       
-      return dateB - dateA; // most recent first
+      return dateA - dateB; // oldest first
     });
 
   return (
