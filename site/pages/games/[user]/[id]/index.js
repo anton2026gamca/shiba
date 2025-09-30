@@ -629,7 +629,7 @@ export default function GamesPage({ gameData, error }) {
                   }}
                 >
                   <option value="latest">{latestVersionLabel}</option>
-                  {demoVersions.map((demo) => (
+                  {demoVersions.slice(1).map((demo) => (
                     <option key={demo.version} value={demo.version}>
                       {demo.label}
                     </option>
