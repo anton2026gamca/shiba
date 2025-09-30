@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  shiba-api:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persistent volume for games data
+      - games-data:/games
+    environment:
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_REGION=${R2_REGION}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - AIRTABLE_API_KEY=${AIRTABLE_API_KEY}
+      - AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  # Named volume for persistent games storage
+  games-data:
+    driver: local

@@ -3,7 +3,7 @@
 **ハッククラブ：ゲームを作って、日本にアーケードを建てよう。**  
 **HACK CLUB: make a game, build an arcade in japan.**
 
-## About
+## About Shiba...
 
 Shiba is a game development program by Hack Club for teenagers to create games and build an arcade in Tokyo, Japan. The program includes an online game development phase followed by an in-person arcade building experience.
 

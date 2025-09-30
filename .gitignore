@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+
+./playtestScript
+
+# Next.js
+.next/
+out/
+
+./playtestScript/.env
+./playtestScript/venv
+./playtestScript/challenges.json
+
+# Env
+.env
+.env.*
+
+./api/.env
+
+./api/uploads/
+
+./api/local-storage/
+
+# Wiki
+./wiki/.env
+./wiki/LocalSettings.php
+./wiki/images/
+./wiki/cache/
+./wiki/tmp/
+./wiki/sitemap*
+./wiki/robots.txt
