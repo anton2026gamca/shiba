@@ -125,7 +125,7 @@ function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
         {/* Header */}
         <div style={{ marginBottom: "20px" }}>
           <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", color: "#333" }}>
-            Give feedback to{" "}
+            Give yap (feedback) to{" "}
             {slackProfile?.image && (
               <img
                 src={slackProfile.image}
