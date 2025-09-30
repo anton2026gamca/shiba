@@ -8,6 +8,246 @@ import path from 'path';
 const PlayGameComponent = dynamic(() => import('@/components/utils/playGameComponent'), { ssr: false });
 const PostAttachmentRenderer = dynamic(() => import('@/components/utils/PostAttachmentRenderer'), { ssr: false });
 
+// Feedback Modal Component
+function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
+  const [message, setMessage] = useState("");
+  const [starRating, setStarRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [isSent, setIsSent] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!message.trim()) {
+      setSubmitMessage("Please enter a message");
+      return;
+    }
+    if (starRating === 0) {
+      setSubmitMessage("Please select a star rating");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitMessage("");
+
+    try {
+      const res = await fetch("/api/CreateGameFeedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          gameId,
+          message: message.trim(),
+          starRanking: starRating
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (data.ok) {
+        setIsSent(true);
+        setMessage("");
+        setStarRating(0);
+        setTimeout(() => {
+          onClose();
+          setIsSent(false);
+        }, 1500);
+      } else {
+        setSubmitMessage(data.message || "Failed to send feedback");
+      }
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+      setSubmitMessage("Failed to send feedback");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderStars = () => {
+    return Array.from({ length: 5 }, (_, index) => {
+      const starNumber = index + 1;
+      const isSelected = starNumber <= starRating;
+      
+      return (
+        <button
+          key={starNumber}
+          onClick={() => setStarRating(starNumber)}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "4px",
+            cursor: "pointer"
+          }}
+        >
+          <img
+            src="/SpeedyShibaShipper.png"
+            alt={`${starNumber} star`}
+            style={{
+              width: "24px",
+              height: "24px",
+              opacity: isSelected ? 1.0 : 0.1,
+              transition: "opacity 0.2s ease"
+            }}
+          />
+        </button>
+      );
+    });
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "20px"
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          borderRadius: "12px",
+          padding: "24px",
+          maxWidth: "500px",
+          width: "100%",
+          maxHeight: "80vh",
+          overflow: "auto",
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+        }}
+      >
+        {/* Header */}
+        <div style={{ marginBottom: "20px" }}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", color: "#333" }}>
+            Give yap (feedback) to{" "}
+            {slackProfile?.image && (
+              <img
+                src={slackProfile.image}
+                alt={slackProfile.displayName || "User"}
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "4px",
+                  marginRight: "8px",
+                  verticalAlign: "middle"
+                }}
+              />
+            )}
+            {slackProfile?.displayName || "User"} for {game?.name || "this game"}
+          </h3>
+        </div>
+
+        {/* Star Rating */}
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: "#333" }}>
+            Star Rating (1-5):
+          </label>
+          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            {renderStars()}
+            <span style={{ marginLeft: "12px", fontSize: "14px", color: "#666" }}>
+              {starRating > 0 ? `${starRating} star${starRating > 1 ? 's' : ''}` : "Select rating"}
+            </span>
+          </div>
+        </div>
+
+        {/* Message Text Area */}
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: "#333" }}>
+            Your Feedback:
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Share your thoughts about this game..."
+            style={{
+              width: "100%",
+              minHeight: "120px",
+              resize: "vertical",
+              fontSize: "14px",
+              boxSizing: "border-box",
+              padding: "10px",
+              outline: "none",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.75)",
+              fontFamily: "inherit"
+            }}
+          />
+        </div>
+
+        {/* Submit Message - only show error messages */}
+        {submitMessage && !isSent && (
+          <div style={{ 
+            marginBottom: "16px", 
+            padding: "8px 12px", 
+            borderRadius: "6px",
+            fontSize: "13px",
+            backgroundColor: "#f8d7da",
+            color: "#721c24",
+            border: "1px solid #f5c6cb"
+          }}>
+            {submitMessage}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+          <button
+            onClick={onClose}
+            style={{
+              appearance: "none",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              background: "rgba(255, 255, 255, 0.75)",
+              color: "rgba(0, 0, 0, 0.8)",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "13px",
+              fontFamily: "inherit"
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !message.trim() || starRating === 0 || isSent}
+            style={{
+              appearance: "none",
+              border: "0",
+              background: isSent 
+                ? "#22c55e" 
+                : isSubmitting || !message.trim() || starRating === 0 
+                  ? "#ccc" 
+                  : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+              color: "#fff",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              cursor: isSubmitting || !message.trim() || starRating === 0 || isSent ? "not-allowed" : "pointer",
+              fontWeight: "800",
+              fontSize: "13px",
+              fontFamily: "inherit",
+              opacity: isSubmitting || !message.trim() || starRating === 0 ? 0.5 : 1
+            }}
+          >
+            {isSent ? "Sent" : isSubmitting ? "Sending..." : "Send Feedback"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // File-based cache for build time
 const CACHE_FILE = path.join(process.cwd(), '.next', 'games-cache.json');
 const CACHE_DURATION = 900000; // 15 minutes
@@ -86,12 +326,48 @@ export default function GamesPage({ gameData, error }) {
   const [selectedView, setSelectedView] = useState('Devlogs'); // 'Devlogs' | 'Artlogs' | 'Plays'
   const [hoveredPlayer, setHoveredPlayer] = useState(null);
   const [selectedVersion, setSelectedVersion] = useState('latest');
+  const [isPawed, setIsPawed] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
+  // Get token from localStorage
+  const [token, setToken] = useState(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token');
+      setToken(storedToken);
+    }
+  }, []);
 
   // Use profile data from gameData instead of fetching separately
   const slackProfile = gameData ? {
     displayName: gameData.creatorDisplayName || '',
     image: gameData.creatorImage || '',
   } : null;
+
+  // Load pawed status from server (only for logged-in users)
+  useEffect(() => {
+    const loadPawedStatus = async () => {
+      if (typeof window !== 'undefined' && token && gameData?.id) {
+        try {
+          const response = await fetch('/api/getMyPaws', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+          
+          const result = await response.json();
+          if (response.ok && result.ok) {
+            const pawedGames = new Set(result.followingGames || []);
+            setIsPawed(pawedGames.has(gameData.id));
+          }
+        } catch (e) {
+          console.error('Failed to load pawed status:', e);
+        }
+      }
+    };
+    
+    loadPawedStatus();
+  }, [token, gameData?.id]);
 
   // Get all posts with gameLink (demos) and create versions
   const demoVersions = gameData?.posts 
@@ -402,96 +678,218 @@ export default function GamesPage({ gameData, error }) {
             <p style={{marginTop: 16, marginBottom: 8}}>{gameData.description}</p>
           )}
 
-          {/* View Selector */}
+          {/* View Selector with Paw and Feedback Buttons */}
           <div style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            justifyContent: "space-between",
             marginTop: 16,
             marginBottom: 16,
-            marginLeft: "auto",
-            marginRight: "auto",
-            padding: "4px 6px",
-            backgroundColor: "#fff",
-            width: "fit-content",
-            gap: "8px",
-            borderRadius: "12px",
-            border: "1px solid #ccc"
+            width: "100%",
+            gap: "16px"
           }}>
-            <button
-              onClick={() => setSelectedView("Devlogs")}
-              style={{
-                appearance: "none",
-                border: selectedView === "Devlogs" ? "2px solid #000" : "1px solid #ccc",
-                background: selectedView === "Devlogs" ? "#000" : "#fff",
-                color: selectedView === "Devlogs" ? "#fff" : "#000",
-                borderRadius: "8px",
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "14px",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Devlogs
-              {Array.isArray(gameData?.posts) && gameData.posts.length > 0 && (() => {
-                const devlogPosts = gameData.posts.filter(post => post.postType !== 'artlog');
-                const totalHours = devlogPosts.reduce((sum, post) => sum + (post.HoursSpent || 0), 0);
-                return totalHours > 0 ? (
-                  <span style={{ marginLeft: "6px", opacity: 0.8 }}>
-                    ({totalHours.toFixed(2)} hours)
-                  </span>
-                ) : null;
-              })()}
-            </button>
-            
-            <button
-              onClick={() => setSelectedView("Artlogs")}
-              style={{
-                appearance: "none",
-                border: selectedView === "Artlogs" ? "2px solid #000" : "1px solid #ccc",
-                background: selectedView === "Artlogs" ? "#000" : "#fff",
-                color: selectedView === "Artlogs" ? "#fff" : "#000",
-                borderRadius: "8px",
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "14px",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Artlogs
-              {Array.isArray(gameData?.posts) && gameData.posts.length > 0 && (() => {
-                const artlogPosts = gameData.posts.filter(post => post.postType === 'artlog');
-                const totalHours = artlogPosts.reduce((sum, post) => sum + (post.timeSpentOnAsset || 0), 0);
-                return totalHours > 0 ? (
-                  <span style={{ marginLeft: "6px", opacity: 0.8 }}>
-                    ({totalHours.toFixed(2)} hours)
-                  </span>
-                ) : null;
-              })()}
-            </button>
-            
-            <button
-              onClick={() => setSelectedView("Plays")}
-              style={{
-                appearance: "none",
-                border: selectedView === "Plays" ? "2px solid #000" : "1px solid #ccc",
-                background: selectedView === "Plays" ? "#000" : "#fff",
-                color: selectedView === "Plays" ? "#fff" : "#000",
-                borderRadius: "8px",
-                padding: "8px 12px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "14px",
-                transition: "all 0.2s ease"
-              }}
-            >
-              Plays
-              <span style={{ marginLeft: "6px", opacity: 0.8 }}>
-                ({gameData?.playsCount || 0})
-              </span>
-            </button>
+            {/* Left side - View selector */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 6px",
+              backgroundColor: "#fff",
+              gap: "8px",
+              borderRadius: "12px",
+              border: "1px solid #ccc"
+            }}>
+              <button
+                onClick={() => setSelectedView("Devlogs")}
+                style={{
+                  appearance: "none",
+                  border: selectedView === "Devlogs" ? "2px solid #000" : "1px solid #ccc",
+                  background: selectedView === "Devlogs" ? "#000" : "#fff",
+                  color: selectedView === "Devlogs" ? "#fff" : "#000",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Devlogs
+                {Array.isArray(gameData?.posts) && gameData.posts.length > 0 && (() => {
+                  const devlogPosts = gameData.posts.filter(post => post.postType !== 'artlog');
+                  const totalHours = devlogPosts.reduce((sum, post) => sum + (post.HoursSpent || 0), 0);
+                  return totalHours > 0 ? (
+                    <span style={{ marginLeft: "6px", opacity: 0.8 }}>
+                      ({totalHours.toFixed(2)} hours)
+                    </span>
+                  ) : null;
+                })()}
+              </button>
+              
+              <button
+                onClick={() => setSelectedView("Artlogs")}
+                style={{
+                  appearance: "none",
+                  border: selectedView === "Artlogs" ? "2px solid #000" : "1px solid #ccc",
+                  background: selectedView === "Artlogs" ? "#000" : "#fff",
+                  color: selectedView === "Artlogs" ? "#fff" : "#000",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Artlogs
+                {Array.isArray(gameData?.posts) && gameData.posts.length > 0 && (() => {
+                  const artlogPosts = gameData.posts.filter(post => post.postType === 'artlog');
+                  const totalHours = artlogPosts.reduce((sum, post) => sum + (post.timeSpentOnAsset || 0), 0);
+                  return totalHours > 0 ? (
+                    <span style={{ marginLeft: "6px", opacity: 0.8 }}>
+                      ({totalHours.toFixed(2)} hours)
+                    </span>
+                  ) : null;
+                })()}
+              </button>
+              
+              <button
+                onClick={() => setSelectedView("Plays")}
+                style={{
+                  appearance: "none",
+                  border: selectedView === "Plays" ? "2px solid #000" : "1px solid #ccc",
+                  background: selectedView === "Plays" ? "#000" : "#fff",
+                  color: selectedView === "Plays" ? "#fff" : "#000",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  fontWeight: "700",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                Plays
+                <span style={{ marginLeft: "6px", opacity: 0.8 }}>
+                  ({gameData?.playsCount || 0})
+                </span>
+              </button>
+            </div>
+
+            {/* Right side - Paw and Feedback buttons */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "4px 6px",
+              backgroundColor: "#fff",
+              gap: "8px",
+              borderRadius: "12px",
+              border: "1px solid #ccc"
+            }}>
+              {/* Feedback Button */}
+              <div
+                className="chat-bubble-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  
+                  // Check if user is logged in
+                  if (!token) {
+                    alert("Please login @ shiba.hackclub.com & come back");
+                    return;
+                  }
+                  
+                  setShowFeedbackModal(true);
+                }}
+                onMouseEnter={(e) => {
+                  const img = e.currentTarget.querySelector('.chat-bubble-image');
+                  if (img) img.src = "/chatBubble.svg";
+                }}
+                onMouseLeave={(e) => {
+                  const img = e.currentTarget.querySelector('.chat-bubble-image');
+                  if (img) img.src = "/chatBubbleInactive.svg";
+                }}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "4px",
+                  padding: "2px"
+                }}
+              >
+                <img
+                  className="chat-bubble-image"
+                  src="/chatBubbleInactive.svg"
+                  alt="Give Feedback"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    opacity: 0.7
+                  }}
+                />
+              </div>
+
+              {/* Paw Button */}
+              <div
+                className="stamp-button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  
+                  // Check if user is logged in
+                  if (!token) {
+                    alert("Please login @ shiba.hackclub.com & come back");
+                    return;
+                  }
+                  
+                  const gameRecordId = gameData?.id;
+                  if (!gameRecordId) return;
+                  
+                  // Call the appropriate API
+                  const apiEndpoint = isPawed ? '/api/UnpawProject' : '/api/PawProject';
+                  const apiData = { token, gameId: gameRecordId };
+                  
+                  try {
+                    const response = await fetch(apiEndpoint, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(apiData)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok && result.ok) {
+                      setIsPawed(!isPawed);
+                    } else {
+                      console.error('API error:', result.message);
+                      alert(`Failed to ${isPawed ? 'unpaw' : 'paw'} game: ${result.message || 'Unknown error'}`);
+                    }
+                  } catch (error) {
+                    console.error('Network error:', error);
+                    alert(`Failed to ${isPawed ? 'unpaw' : 'paw'} game: Network error`);
+                  }
+                }}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                <img
+                  src={isPawed ? "/stamped.svg" : "/stamp.svg"}
+                  alt={isPawed ? "Pawed" : "Paw"}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    opacity: isPawed ? 1 : 0.7
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Devlogs View */}
@@ -816,6 +1214,45 @@ export default function GamesPage({ gameData, error }) {
         </div>
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <FeedbackModal
+          gameId={gameData?.id}
+          game={gameData}
+          onClose={() => setShowFeedbackModal(false)}
+          token={token}
+          slackProfile={slackProfile}
+        />
+      )}
+
+      <style jsx>{`
+        /* Chat bubble button animations */
+        .chat-bubble-button {
+          transition: transform 0.1s ease;
+        }
+        
+        .chat-bubble-button:active {
+          transform: scale(0.9);
+        }
+        
+        .chat-bubble-image {
+          transition: opacity 0.3s ease;
+        }
+
+        /* Stamp button animations */
+        .stamp-button {
+          transition: transform 0.1s ease;
+        }
+        
+        .stamp-button:active {
+          transform: scale(0.9);
+        }
+        
+        .stamp-image {
+          transition: opacity 0.3s ease;
+        }
+      `}</style>
     </>
   );
 }
