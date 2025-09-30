@@ -85,12 +85,37 @@ export default function GamesPage({ gameData, error }) {
   const [loading, setLoading] = useState(false);
   const [selectedView, setSelectedView] = useState('Devlogs'); // 'Devlogs' | 'Artlogs' | 'Plays'
   const [hoveredPlayer, setHoveredPlayer] = useState(null);
+  const [selectedVersion, setSelectedVersion] = useState('latest');
 
   // Use profile data from gameData instead of fetching separately
   const slackProfile = gameData ? {
     displayName: gameData.creatorDisplayName || '',
     image: gameData.creatorImage || '',
   } : null;
+
+  // Get all posts with gameLink (demos) and create versions
+  const demoVersions = gameData?.posts 
+    ? gameData.posts
+        .filter(post => post.PlayLink || post.playLink || post.gameLink)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+        .map((post, index) => ({
+          version: `v0.${index + 1}`,
+          label: `Version 0.${index + 1}`,
+          gameLink: post.PlayLink || post.playLink || post.gameLink,
+          post
+        }))
+        .reverse() // Show newest versions first
+    : [];
+
+  // Get the current game link based on selected version
+  const currentGameLink = selectedVersion === 'latest' 
+    ? gameData?.playableURL 
+    : demoVersions.find(v => v.version === selectedVersion)?.gameLink || gameData?.playableURL;
+
+  // Get the latest version label
+  const latestVersionLabel = demoVersions.length > 0 
+    ? demoVersions[0].label // First item since array is reversed (newest first)
+    : 'Latest Version';
 
   // Helper function to group posts between LastReviewed and current moment
   const groupPostsByLastReviewed = (posts) => {
@@ -228,77 +253,113 @@ export default function GamesPage({ gameData, error }) {
             <div style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
               marginBottom: 16,
               marginTop: 16,
-              marginLeft: "auto",
-              marginRight: "auto",
-              padding: "6px 12px",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              borderRadius: "8px",
-              border: "1px solid #666",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              flexWrap: "wrap",
-              gap: "8px",
-              width: "fit-content",
-              fontSize: "14px"
+              gap: "16px",
+              width: "100%"
             }}>
-              <a 
-                href="https://shiba.hackclub.com/games/list"
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  borderBottom: "1px solid #ccc"
-                }}
-              >
-                <span>Shiba Games</span>
-              </a>
-              <span style={{ color: "#666" }}>/</span>
-              <a 
-                href={`https://hackclub.slack.com/team/${user}`}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  cursor: "pointer"
-                }}
-              >
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }}>
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 6,
-                      border: '1px solid rgba(0,0,0,0.18)',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundColor: '#fff',
-                      backgroundImage: slackProfile?.image ? `url(${slackProfile.image})` : 'none',
-                    }}
-                  />
-                  <span style={{ borderBottom: "1px solid #ccc" }}>{slackProfile?.displayName || user}</span>
-                </div>
-              </a>
-              <span style={{ color: "#666" }}>/</span>
-              <a 
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.reload();
-                }}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  cursor: "pointer",
-                  borderBottom: "1px solid #ccc"
-                }}
-              >
-                <span>{gameData?.name || 'Game Name'}</span>
-              </a>
+              {/* Left side - Breadcrumb navigation */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "6px 12px",
+                backgroundColor: "rgba(255, 255, 255, 0.9)",
+                borderRadius: "8px",
+                border: "1px solid #666",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                flexWrap: "wrap",
+                gap: "8px",
+                fontSize: "14px"
+              }}>
+                <a 
+                  href="https://shiba.hackclub.com/games/list"
+                  style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #ccc"
+                  }}
+                >
+                  <span>Shiba Games</span>
+                </a>
+                <span style={{ color: "#666" }}>/</span>
+                <a 
+                  href={`https://hackclub.slack.com/team/${user}`}
+                  style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer"
+                  }}
+                >
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                  }}>
+                    <div
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 6,
+                        border: '1px solid rgba(0,0,0,0.18)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundColor: '#fff',
+                        backgroundImage: slackProfile?.image ? `url(${slackProfile.image})` : 'none',
+                      }}
+                    />
+                    <span style={{ borderBottom: "1px solid #ccc" }}>{slackProfile?.displayName || user}</span>
+                  </div>
+                </a>
+                <span style={{ color: "#666" }}>/</span>
+                <a 
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.reload();
+                  }}
+                  style={{
+                    textDecoration: "none",
+                    color: "inherit",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #ccc"
+                  }}
+                >
+                  <span>{gameData?.name || 'Game Name'}</span>
+                </a>
+              </div>
+
+              {/* Right side - Version dropdown */}
+              <div style={{
+                position: "relative"
+              }}>
+                <select
+                  value={selectedVersion}
+                  onChange={(e) => setSelectedVersion(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    borderRadius: "8px",
+                    border: "1px solid #666",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    appearance: "none",
+                    paddingRight: "32px",
+                    backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 10px center"
+                  }}
+                >
+                  <option value="latest">{latestVersionLabel}</option>
+                  {demoVersions.map((demo) => (
+                    <option key={demo.version} value={demo.version}>
+                      {demo.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div style={{ 
               width: '100%', 
@@ -308,11 +369,11 @@ export default function GamesPage({ gameData, error }) {
               boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               overflow: "hidden"
             }}>
-            {gameData?.playableURL && (() => {
+            {currentGameLink && (() => {
               let gameId = '';
               try {
                 // Handle both string and array formats
-                const playableURL = Array.isArray(gameData.playableURL) ? gameData.playableURL[0] : gameData.playableURL;
+                const playableURL = Array.isArray(currentGameLink) ? currentGameLink[0] : currentGameLink;
                 if (!playableURL) return null;
                 
                 const path = playableURL.startsWith('http') ? new URL(playableURL).pathname : playableURL;
@@ -323,6 +384,7 @@ export default function GamesPage({ gameData, error }) {
               }
               return gameId ? (
                 <PlayGameComponent 
+                  key={`${gameId}-${selectedVersion}`}
                   gameId={gameId}
                   gameName={gameData?.name || id}
                   thumbnailUrl={gameData?.thumbnailUrl || ''}
