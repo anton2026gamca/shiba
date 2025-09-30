@@ -375,8 +375,8 @@ export default function GamesPage({ gameData, error }) {
         .filter(post => post.PlayLink || post.playLink || post.gameLink)
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
         .map((post, index) => ({
-          version: `v0.${index + 1}`,
-          label: `Version 0.${index + 1}`,
+          version: `v1.${index}`,
+          label: `Version 1.${index}`,
           gameLink: post.PlayLink || post.playLink || post.gameLink,
           post
         }))
