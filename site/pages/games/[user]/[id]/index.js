@@ -374,12 +374,17 @@ export default function GamesPage({ gameData, error }) {
     ? gameData.posts
         .filter(post => post.PlayLink || post.playLink || post.gameLink)
         .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-        .map((post, index) => ({
-          version: `v1.${index}`,
-          label: `Version 1.${index}`,
-          gameLink: post.PlayLink || post.playLink || post.gameLink,
-          post
-        }))
+        .map((post, index) => {
+          const buildNumber = index + 1;
+          const major = buildNumber <= 9 ? 0 : Math.floor(buildNumber / 10);
+          const minor = buildNumber <= 9 ? buildNumber : buildNumber % 10;
+          return {
+            version: `v${major}.${minor}`,
+            label: `Version ${major}.${minor}`,
+            gameLink: post.PlayLink || post.playLink || post.gameLink,
+            post
+          };
+        })
         .reverse() // Show newest versions first
     : [];
 
