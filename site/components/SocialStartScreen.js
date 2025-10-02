@@ -232,6 +232,25 @@ function SignupModal({ onClose, onSignupSuccess, requestOtp, verifyOtp, theme })
                   fontFamily: "inherit"
                 }}
               />
+              <button
+                onClick={onVerify}
+                disabled={loading || !otp.trim() || otp.length !== 6}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Verifying..." : "Verify & Login"}
+              </button>
             </div>
           </div>
         )}
@@ -251,30 +270,6 @@ function SignupModal({ onClose, onSignupSuccess, requestOtp, verifyOtp, theme })
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-          {stage === "otp" && (
-            <button
-              onClick={onVerify}
-              disabled={loading || !otp.trim() || otp.length !== 6}
-              style={{
-                appearance: "none",
-                border: "0",
-                background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
-                color: "#fff",
-                borderRadius: "10px",
-                padding: "10px 16px",
-                cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
-                fontWeight: "800",
-                fontSize: "13px",
-                fontFamily: "inherit",
-                opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1
-              }}
-            >
-              {loading ? "Verifying..." : "Verify & Sign Up"}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -507,6 +502,25 @@ function LoginModal({ onClose, onLoginSuccess, requestOtp, verifyOtp, theme }) {
                   fontFamily: "inherit"
                 }}
               />
+              <button
+                onClick={onVerify}
+                disabled={loading || !otp.trim() || otp.length !== 6}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Verifying..." : "Verify & Login"}
+              </button>
             </div>
           </div>
         )}
