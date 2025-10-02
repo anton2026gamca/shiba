@@ -146,9 +146,9 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
               try {
                 const requestBody = { token, gameName };
                 // console.log(
-                  "🎮 Request body:",
-                  JSON.stringify(requestBody, null, 2),
-                );
+                //   "🎮 Request body:",
+                //   JSON.stringify(requestBody, null, 2),
+                // );
 
                 const res = await fetch("/api/CreatePlay", {
                   method: "POST",
@@ -169,8 +169,8 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
               }
             } else {
               // console.log(
-                "🎮 PlayGameComponent: Skipping play record creation",
-              );
+              //   "🎮 PlayGameComponent: Skipping play record creation",
+              // );
               // console.log("🎮 Token available:", !!token);
               // console.log("🎮 Game name available:", !!gameName);
             }

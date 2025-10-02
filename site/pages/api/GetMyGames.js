@@ -20,12 +20,12 @@ export default async function handler(req, res) {
   }
   
   // console.log('[GetMyGames] API Key present, proceeding...');
-  // console.log('[GetMyGames] Table names:', {
-    USERS: AIRTABLE_USERS_TABLE,
-    GAMES: AIRTABLE_GAMES_TABLE,
-    POSTS: AIRTABLE_POSTS_TABLE,
-    CHALLENGES: AIRTABLE_CHALLENGES_TABLE
-  });
+      // console.log('[GetMyGames] Table names:', {
+      //   USERS: AIRTABLE_USERS_TABLE,
+      //   GAMES: AIRTABLE_GAMES_TABLE,
+      //   POSTS: AIRTABLE_POSTS_TABLE,
+      //   CHALLENGES: AIRTABLE_CHALLENGES_TABLE
+      // });
 
   try {
     const { token } = req.body || {};
@@ -95,16 +95,16 @@ export default async function handler(req, res) {
       
       // Debug feedback data
       if (feedbacks.length > 0) {
-        // console.log(`[GetMyGames] Game "${gameName}" feedback debug:`, {
-          rawFeedbackStatuses: feedbackStatusesRaw,
-          rawFeedbackMessages: feedbackMessagesRaw,
-          rawFeedbacks: feedbacksRaw,
-          processedFeedbacks: feedbacks,
-          processedFeedbackStatuses: feedbackStatuses,
-          processedFeedbackMessages: feedbackMessages,
-          gameFeedbackResponses: gameFeedbackResponses,
-          allFields: Object.keys(rec.fields || {})
-        });
+            // console.log(`[GetMyGames] Game "${gameName}" feedback debug:`, {
+            //   rawFeedbackStatuses: feedbackStatusesRaw,
+            //   rawFeedbackMessages: feedbackMessagesRaw,
+            //   rawFeedbacks: feedbacksRaw,
+            //   processedFeedbacks: feedbacks,
+            //   processedFeedbackStatuses: feedbackStatuses,
+          // processedFeedbackMessages: feedbackMessages,
+          // gameFeedbackResponses: gameFeedbackResponses,
+          // allFields: Object.keys(rec.fields || {})
+        // });
       }
       
       // Transform posts to match the structure that MyGamesComponent expects

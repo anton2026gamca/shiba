@@ -8,11 +8,11 @@ export default function GamesIndexPage({ games, error }) {
   useEffect(() => {
     if (games && games.length > 0) {
       // console.log('First game data:', games[0]);
-      // console.log('Creator fields:', {
-        creatorDisplayName: games[0].creatorDisplayName,
-        creatorImage: games[0].creatorImage,
-        slackId: games[0]['slack id']
-      });
+          // console.log('Creator fields:', {
+          //   creatorDisplayName: games[0].creatorDisplayName,
+          //   creatorImage: games[0].creatorImage,
+          //   slackId: games[0]['slack id']
+          // });
     }
   }, [games]);
 

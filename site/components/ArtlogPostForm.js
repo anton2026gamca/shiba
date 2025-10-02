@@ -185,15 +185,15 @@ const ArtlogPostForm = forwardRef(({
   // Function to validate form and get data
   const getFormData = () => {
     // console.log('getFormData called with:', { 
-      postContent: postContent.trim(), 
-      timelapseFile: !!timelapseFile, 
-      githubImageLink: githubImageLink.trim(), 
-      timeScreenshotFile: !!timeScreenshotFile, 
-      hoursSpent, 
-      minutesSpent,
-      uploadedFiles,
-      uploadProgress
-    });
+    //   postContent: postContent.trim(), 
+    //   timelapseFile: !!timelapseFile, 
+    //   githubImageLink: githubImageLink.trim(), 
+    //   timeScreenshotFile: !!timeScreenshotFile, 
+    //   hoursSpent, 
+    //   minutesSpent,
+    //   uploadedFiles,
+    //   uploadProgress
+    // });
     
     setErrors({});
     

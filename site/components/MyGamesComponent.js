@@ -894,11 +894,11 @@ function DetailView({
         game.feedbackResponses.forEach((feedbackResponse, index) => {
           const feedbackKey = `${game.id}-${index}`;
           // console.log(`Processing feedback ${index}:`, {
-            feedbackKey,
-            feedbackResponse,
-            response: feedbackResponse.response,
-            responseMessage: feedbackResponse.responseMessage
-          });
+          //   feedbackKey,
+          //   feedbackResponse,
+          //   response: feedbackResponse.response,
+          //   responseMessage: feedbackResponse.responseMessage
+          // });
           
           // Convert "None" to null for consistency
           if (feedbackResponse.response && feedbackResponse.response !== "None") {
@@ -917,10 +917,10 @@ function DetailView({
       
       // console.log("Setting feedback responses:", { responses, messages });
       // console.log("Game object received:", {
-        id: game.id,
-        feedbackResponses: game.feedbackResponses,
-        Feedback: game.Feedback
-      });
+      //   id: game.id,
+      //   feedbackResponses: game.feedbackResponses,
+      //   Feedback: game.Feedback
+      // });
       setFeedbackResponses(responses);
       setReportMessages(messages);
     } catch (error) {
@@ -1615,11 +1615,11 @@ function DetailView({
                   const feedbackKey = `${game.id}-${index}`;
                   const currentResponse = feedbackResponses[feedbackKey];
                   // console.log(`Feedback ${index} (${feedbackKey}):`, {
-                    currentResponse,
-                    allResponses: feedbackResponses,
-                    feedbackStatus: game.FeedbackStatus?.[index],
-                    feedbackMessage: game.FeedbackMessage?.[index]
-                  });
+                  //   currentResponse,
+                  //   allResponses: feedbackResponses,
+                  //   feedbackStatus: game.FeedbackStatus?.[index],
+                  //   feedbackMessage: game.FeedbackMessage?.[index]
+                  // });
                   
                   return (
                     <div key={index} style={{ 
@@ -2060,11 +2060,11 @@ function DetailView({
           // console.log('Game challenges data:', gameChallenges);
           gameChallenges.forEach((challenge, index) => {
             // console.log(`Challenge ${index}:`, {
-              status: challenge.status,
-              earnableSSS: challenge.earnableSSS,
-              sssEarned: challenge.sssEarned,
-              challenge: challenge.challenge
-            });
+            //   status: challenge.status,
+            //   earnableSSS: challenge.earnableSSS,
+            //   sssEarned: challenge.sssEarned,
+            //   challenge: challenge.challenge
+            // });
           });
           
           if (gameChallenges.length === 0) return null;
@@ -2129,12 +2129,12 @@ function DetailView({
                             try {
                               const newStatus = challenge.status === "Not Submitted" ? "Pending" : "Not Submitted";
                               // console.log('Making API call with:', {
-                                token: token,
-                                challengeId: challenge.airtableId,
-                                status: newStatus,
-                                challenge: challenge,
-                                challengeKeys: Object.keys(challenge)
-                              });
+                              //   token: token,
+                              //   challengeId: challenge.airtableId,
+                              //   status: newStatus,
+                              //   challenge: challenge,
+                              //   challengeKeys: Object.keys(challenge)
+                              // });
                               
                               const response = await fetch('/api/adjustGameChallenge', {
                                 method: 'POST',
@@ -2201,12 +2201,12 @@ function DetailView({
                             try {
                               const newStatus = challenge.status === "Not Submitted" ? "Pending" : "Not Submitted";
                               // console.log('Making API call with:', {
-                                token: token,
-                                challengeId: challenge.airtableId,
-                                status: newStatus,
-                                challenge: challenge,
-                                challengeKeys: Object.keys(challenge)
-                              });
+                              //   token: token,
+                              //   challengeId: challenge.airtableId,
+                              //   status: newStatus,
+                              //   challenge: challenge,
+                              //   challengeKeys: Object.keys(challenge)
+                              // });
                               
                               const response = await fetch('/api/adjustGameChallenge', {
                                 method: 'POST',
@@ -2568,9 +2568,9 @@ function DetailView({
                     className="moments-attach-btn"
                     onClick={() => {
                       // console.log(
-                        "Build file button clicked, ref exists:",
-                        !!buildFileInputRef.current,
-                      );
+                      //   "Build file button clicked, ref exists:",
+                      //   !!buildFileInputRef.current,
+                      // );
                       buildFileInputRef.current?.click();
                     }}
                     title="Upload a .zip file from Godot HTML5 export (Project → Export → Web → Export as HTML5)"
@@ -2644,9 +2644,9 @@ function DetailView({
                     className="moments-attach-btn"
                     onClick={() => {
                       // console.log(
-                        "Moments file clicked, ref exists:",
-                        !!momentsFileInputRef.current,
-                      );
+                      //   "Moments file clicked, ref exists:",
+                      //   !!momentsFileInputRef.current,
+                      // );
                       momentsFileInputRef.current?.click();
                     }}
                   >

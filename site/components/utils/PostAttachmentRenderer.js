@@ -2714,7 +2714,7 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
       {/* Removed as per edit hint */}
 
       {/* Debug logging */}
-      {// console.log('PostAttachmentRenderer artlog check:', {
+      {/* console.log('PostAttachmentRenderer artlog check:', {
         postType,
         timelapseVideoId,
         githubImageLink,
@@ -2723,7 +2723,7 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
         minutesSpent,
         calculatedTimeSpentOnAsset,
         condition: postType === 'artlog' || (timelapseVideoId && githubImageLink && calculatedTimeSpentOnAsset > 0)
-      })}
+      }) */}
       
       {/* Artlog-specific rendering */}
       {(postType === 'artlog' || (timelapseVideoId && githubImageLink && calculatedTimeSpentOnAsset > 0)) && (
