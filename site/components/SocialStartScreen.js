@@ -5,6 +5,603 @@ import { useActivityTracker } from './useActivityTracker';
 const PostAttachmentRenderer = dynamic(() => import('@/components/utils/PostAttachmentRenderer'), { ssr: false });
 const PlayGameComponent = dynamic(() => import('@/components/utils/playGameComponent'), { ssr: false });
 
+function SignupModal({ onClose, onSignupSuccess, requestOtp, verifyOtp, theme }) {
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState("email"); // whether user is inputting email or otp
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const emailInputRef = useRef(null);
+
+  useEffect(() => {
+    if (stage === "email" && emailInputRef.current) {
+      emailInputRef.current.focus();
+    }
+  }, [stage]);
+
+  const onRequest = async () => {
+    if (!requestOtp) return;
+    setLoading(true);
+    setMessage("");
+    // Get sentby from URL parameters like StartScreen does
+    const urlParams = new URLSearchParams(window.location.search);
+    const sentby = urlParams.get('sentby');
+    const result = await requestOtp(email, sentby);
+    if (result?.ok) {
+      setStage("otp");
+      setMessage("");
+    } else {
+      setMessage(result?.message || "Failed to request code.");
+    }
+    setLoading(false);
+  };
+
+  const onVerify = async () => {
+    if (!verifyOtp) return;
+    setLoading(true);
+    setMessage("");
+    const result = await verifyOtp(email, otp);
+    if (result?.ok && result?.token) {
+      onSignupSuccess?.(result.token);
+      onClose();
+    } else {
+      // If verification fails, automatically request a new OTP
+      alert("Verification failed. A new code has been sent to your email.");
+      setOtp(""); // Clear the OTP input
+      if (requestOtp) {
+        // Get sentby from URL parameters like StartScreen does
+        const urlParams = new URLSearchParams(window.location.search);
+        const sentby = urlParams.get('sentby');
+        const newOtpResult = await requestOtp(email, sentby);
+        if (newOtpResult?.ok) {
+          setMessage("New code sent. Check your email.");
+        } else {
+          setMessage("Failed to send new code. Please try again.");
+        }
+      } else {
+        setMessage("Verification failed. Please request a new code.");
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleSlackLogin = () => {
+    window.open(
+      "https://slack.com/oauth/v2/authorize?client_id=2210535565.9361842154099&user_scope=users:read,users:read.email&redirect_uri=https://shiba.hackclub.com",
+      "_blank",
+    );
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "20px"
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: "12px",
+          padding: "24px",
+          maxWidth: "500px",
+          width: "100%",
+          maxHeight: "80vh",
+          overflow: "auto",
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+        }}
+      >
+        {/* Header */}
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "row", 
+          alignItems: "center", 
+          justifyContent: "space-between",
+          marginBottom: "20px" 
+        }}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", color: theme.text }}>
+            Join Shiba Arcade
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              appearance: "none",
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "rgba(255,255,255,0.7)",
+              width: 32,
+              height: 32,
+              borderRadius: 9999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: "rgba(0,0,0,0.65)",
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Email Input */}
+        {stage === "email" && (
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: theme.text }}>
+              Email Address:
+            </label>
+            <div style={{
+              display: "flex",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.75)",
+              overflow: "hidden"
+            }}>
+              <input
+                ref={emailInputRef}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="orpheus@hackclub.com"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onRequest();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  outline: "none",
+                  border: "none",
+                  background: "transparent",
+                  fontFamily: "inherit"
+                }}
+              />
+              <button
+                onClick={onRequest}
+                disabled={loading || !email.trim()}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !email.trim() ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !email.trim() ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !email.trim() ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Sending..." : "Send Code"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* OTP Input */}
+        {stage === "otp" && (
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: theme.text }}>
+              Enter 6-digit code:
+            </label>
+            <div style={{
+              display: "flex",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.75)",
+              overflow: "hidden"
+            }}>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter 6-digit code"
+                inputMode="numeric"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onVerify();
+                  }
+                }}
+                maxLength={6}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  outline: "none",
+                  border: "none",
+                  background: "transparent",
+                  fontFamily: "inherit"
+                }}
+              />
+              <button
+                onClick={onVerify}
+                disabled={loading || !otp.trim() || otp.length !== 6}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Verifying..." : "Verify & Login"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Message */}
+        {message && (
+          <div style={{ 
+            marginBottom: "16px", 
+            padding: "8px 12px", 
+            borderRadius: "6px",
+            fontSize: "13px",
+            backgroundColor: stage === "otp" && message.includes("New code sent") ? "#d4edda" : "#f8d7da",
+            color: stage === "otp" && message.includes("New code sent") ? "#155724" : "#721c24",
+            border: stage === "otp" && message.includes("New code sent") ? "1px solid #c3e6cb" : "1px solid #f5c6cb"
+          }}>
+            {message}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+          {stage === "otp" && (
+            <button
+              onClick={onVerify}
+              disabled={loading || !otp.trim() || otp.length !== 6}
+              style={{
+                appearance: "none",
+                border: "0",
+                background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                color: "#fff",
+                borderRadius: "10px",
+                padding: "10px 16px",
+                cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
+                fontWeight: "800",
+                fontSize: "13px",
+                fontFamily: "inherit",
+                opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1
+              }}
+            >
+              {loading ? "Verifying..." : "Verify & Sign Up"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginModal({ onClose, onLoginSuccess, requestOtp, verifyOtp, theme }) {
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [stage, setStage] = useState("email"); // whether user is inputting email or otp
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const emailInputRef = useRef(null);
+
+  useEffect(() => {
+    if (stage === "email" && emailInputRef.current) {
+      emailInputRef.current.focus();
+    }
+  }, [stage]);
+
+  const onRequest = async () => {
+    if (!requestOtp) return;
+    setLoading(true);
+    setMessage("");
+    // Get sentby from URL parameters like StartScreen does
+    const urlParams = new URLSearchParams(window.location.search);
+    const sentby = urlParams.get('sentby');
+    const result = await requestOtp(email, sentby);
+    if (result?.ok) {
+      setStage("otp");
+      setMessage("");
+    } else {
+      setMessage(result?.message || "Failed to request code.");
+    }
+    setLoading(false);
+  };
+
+  const onVerify = async () => {
+    if (!verifyOtp) return;
+    setLoading(true);
+    setMessage("");
+    const result = await verifyOtp(email, otp);
+    if (result?.ok && result?.token) {
+      onLoginSuccess?.(result.token);
+      onClose();
+    } else {
+      // If verification fails, automatically request a new OTP
+      alert("Verification failed. A new code has been sent to your email.");
+      setOtp(""); // Clear the OTP input
+      if (requestOtp) {
+        // Get sentby from URL parameters like StartScreen does
+        const urlParams = new URLSearchParams(window.location.search);
+        const sentby = urlParams.get('sentby');
+        const newOtpResult = await requestOtp(email, sentby);
+        if (newOtpResult?.ok) {
+          setMessage("New code sent. Check your email.");
+        } else {
+          setMessage("Failed to send new code. Please try again.");
+        }
+      } else {
+        setMessage("Verification failed. Please request a new code.");
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleSlackLogin = () => {
+    window.open(
+      "https://slack.com/oauth/v2/authorize?client_id=2210535565.9361842154099&user_scope=users:read,users:read.email&redirect_uri=https://shiba.hackclub.com",
+      "_blank",
+    );
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "20px"
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: theme.surface,
+          borderRadius: "12px",
+          padding: "24px",
+          maxWidth: "500px",
+          width: "100%",
+          maxHeight: "80vh",
+          overflow: "auto",
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+        }}
+      >
+        {/* Header */}
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "row", 
+          alignItems: "center", 
+          justifyContent: "space-between",
+          marginBottom: "20px" 
+        }}>
+          <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold", color: theme.text }}>
+            Login to Shiba Arcade
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              appearance: "none",
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "rgba(255,255,255,0.7)",
+              width: 32,
+              height: 32,
+              borderRadius: 9999,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: "rgba(0,0,0,0.65)",
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Email Input */}
+        {stage === "email" && (
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: theme.text }}>
+              Email Address:
+            </label>
+            <div style={{
+              display: "flex",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.75)",
+              overflow: "hidden"
+            }}>
+              <input
+                ref={emailInputRef}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="orpheus@hackclub.com"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onRequest();
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  outline: "none",
+                  border: "none",
+                  background: "transparent",
+                  fontFamily: "inherit"
+                }}
+              />
+              <button
+                onClick={onRequest}
+                disabled={loading || !email.trim()}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !email.trim() ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !email.trim() ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !email.trim() ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Sending..." : "Send Code"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* OTP Input */}
+        {stage === "otp" && (
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", fontWeight: "600", color: theme.text }}>
+              Enter 6-digit code:
+            </label>
+            <div style={{
+              display: "flex",
+              border: "1px solid rgba(0, 0, 0, 0.18)",
+              borderRadius: "10px",
+              background: "rgba(255, 255, 255, 0.75)",
+              overflow: "hidden"
+            }}>
+              <input
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter 6-digit code"
+                inputMode="numeric"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    onVerify();
+                  }
+                }}
+                maxLength={6}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  fontSize: "14px",
+                  boxSizing: "border-box",
+                  outline: "none",
+                  border: "none",
+                  background: "transparent",
+                  fontFamily: "inherit"
+                }}
+              />
+              <button
+                onClick={onVerify}
+                disabled={loading || !otp.trim() || otp.length !== 6}
+                style={{
+                  appearance: "none",
+                  border: "none",
+                  background: loading || !otp.trim() || otp.length !== 6 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+                  color: "#fff",
+                  padding: "10px 16px",
+                  cursor: loading || !otp.trim() || otp.length !== 6 ? "not-allowed" : "pointer",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  fontFamily: "inherit",
+                  opacity: loading || !otp.trim() || otp.length !== 6 ? 0.5 : 1,
+                  borderLeft: "1px solid rgba(0, 0, 0, 0.1)"
+                }}
+              >
+                {loading ? "Verifying..." : "Verify & Login"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Message */}
+        {message && (
+          <div style={{ 
+            marginBottom: "16px", 
+            padding: "8px 12px", 
+            borderRadius: "6px",
+            fontSize: "13px",
+            backgroundColor: stage === "otp" && message.includes("New code sent") ? "#d4edda" : "#f8d7da",
+            color: stage === "otp" && message.includes("New code sent") ? "#155724" : "#721c24",
+            border: stage === "otp" && message.includes("New code sent") ? "1px solid #c3e6cb" : "1px solid #f5c6cb"
+          }}>
+            {message}
+          </div>
+        )}
+
+
+        {/* Slack Login Button */}
+        <div style={{ marginTop: "16px", textAlign: "center" }}>
+          <button
+            onClick={handleSlackLogin}
+            style={{
+              appearance: "none",
+              border: "2px solid #2D0B2D",
+              background: "#4A154B",
+              color: "white",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontWeight: "600",
+              fontSize: "13px",
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              width: "100%",
+              justifyContent: "center"
+            }}
+          >
+            <img 
+              src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg"
+              alt="Slack"
+              width="16"
+              height="16"
+              style={{ filter: "brightness(0) invert(1)" }}
+            />
+            Login with Slack
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
   const [message, setMessage] = useState("");
   const [starRating, setStarRating] = useState(0);
@@ -199,23 +796,6 @@ function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
         {/* Action Buttons */}
         <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
           <button
-            onClick={onClose}
-            style={{
-              appearance: "none",
-              border: "1px solid rgba(0, 0, 0, 0.18)",
-              background: "rgba(255, 255, 255, 0.75)",
-              color: "rgba(0, 0, 0, 0.8)",
-              borderRadius: "8px",
-              padding: "10px 16px",
-              cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "13px",
-              fontFamily: "inherit"
-            }}
-          >
-            Cancel
-          </button>
-          <button
             onClick={handleSubmit}
             disabled={isSubmitting || !message.trim() || starRating === 0 || isSent}
             style={{
@@ -244,7 +824,7 @@ function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
   );
 }
 
-export default function SocialStartScreen({ games: initialGames = [], gamesError: initialGamesError = null, onLoginClick, onSignupClick, token = null, profile = null, onEnterArcade = null }) {
+export default function SocialStartScreen({ games: initialGames = [], gamesError: initialGamesError = null, onLoginClick, onSignupClick, token = null, profile = null, onEnterArcade = null, requestOtp = null, verifyOtp = null, setToken = null }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState([]);
@@ -263,6 +843,8 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
   const [gameComponentKeys, setGameComponentKeys] = useState({});
   const [stampedGames, setStampedGames] = useState(new Set());
   const [selectedMessageProject, setSelectedMessageProject] = useState(null);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const mountedRef = useRef(false);
 
   // Load stamped games from server (only for logged-in users)
@@ -584,6 +1166,22 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
     });
   };
 
+  // Handle successful signup
+  const handleSignupSuccess = (newToken) => {
+    setToken?.(newToken);
+    localStorage.setItem('token', newToken);
+    // Refresh the page to pick up the new token
+    window.location.reload();
+  };
+
+  // Handle successful login
+  const handleLoginSuccess = (newToken) => {
+    setToken?.(newToken);
+    localStorage.setItem('token', newToken);
+    // Refresh the page to pick up the new token
+    window.location.reload();
+  };
+
   return (
     <div
       style={{
@@ -607,10 +1205,46 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
           backgroundColor: theme.background,
         }}
       >
+        {/* Tokyo Arcade Banner */}
+        <div 
+          onClick={() => {
+            // If user is logged in, do nothing. If not logged in, show StartScreen like the old behavior
+            if (!token) {
+              onLoginClick();
+            }
+            logSpecificActivity('tokyo_arcade_banner_click', {
+              action: token ? 'already_logged_in' : 'triggered_login'
+            });
+          }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 11,
+            backgroundColor: "#F5994B",
+            color: "white",
+            padding: "12px 20px",
+            textAlign: "center",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: "600",
+            transition: "background-color 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = "#e8853a";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = "#F5994B";
+          }}
+        >
+          We're opening an Arcade in Tokyo, <span style={{ textDecoration: "underline" }}>Check It Out</span>
+        </div>
+
         {/* Top Bar - Fixed Position */}
         <div className="top-bar" style={{
           position: "fixed",
-          top: 0,
+          top: "40px", // Positioned right below the banner (no gap)
           left: 0,
           right: 0,
           zIndex: 10,
@@ -695,7 +1329,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                 ) : (
                   <>
                     <button 
-                      onClick={onSignupClick}
+                      onClick={() => setShowSignupModal(true)}
                       style={{
                         padding: "8px 16px",
                         border: `1px solid ${theme.accent}`,
@@ -709,7 +1343,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                       Signup
                     </button>
                     <button 
-                      onClick={onLoginClick}
+                      onClick={() => setShowLoginModal(true)}
                       style={{
                         padding: "8px 16px",
                         border: `1px solid ${theme.border}`,
@@ -729,12 +1363,12 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
           </div>
         </div>
 
-        {/* Main Content with padding to offset top bar */}
+        {/* Main Content with padding to offset top bar and banner */}
         <div
           style={{
             minHeight: "100vh",
             minWidth: "100vw",
-            padding: "100px 8vw 40px",
+            padding: "148px 8vw 40px", // Increased from 100px to 148px to account for banner (48px) + top bar
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -1307,6 +1941,28 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
         </div>
       </div>
 
+      {/* Signup Modal */}
+      {showSignupModal && (
+        <SignupModal
+          onClose={() => setShowSignupModal(false)}
+          onSignupSuccess={handleSignupSuccess}
+          requestOtp={requestOtp}
+          verifyOtp={verifyOtp}
+          theme={theme}
+        />
+      )}
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLoginSuccess={handleLoginSuccess}
+          requestOtp={requestOtp}
+          verifyOtp={verifyOtp}
+          theme={theme}
+        />
+      )}
+
       {/* Feedback Modal */}
       {selectedMessageProject && (
         <FeedbackModal
@@ -1409,6 +2065,12 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
             padding: 6px 12px !important;
             font-size: 12px !important;
           }
+          
+          /* Tokyo banner responsive */
+          :global([style*="position: fixed"][style*="top: 0"][style*="zIndex: 11"]) {
+            font-size: 12px !important;
+            padding: 10px 16px !important;
+          }
         }
         
         @media (max-width: 480px) {
@@ -1432,6 +2094,12 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
           .top-bar button {
             padding: 4px 8px !important;
             font-size: 11px !important;
+          }
+          
+          /* Tokyo banner responsive for small screens */
+          :global([style*="position: fixed"][style*="top: 0"][style*="zIndex: 11"]) {
+            font-size: 11px !important;
+            padding: 8px 12px !important;
           }
         }
       `}</style>

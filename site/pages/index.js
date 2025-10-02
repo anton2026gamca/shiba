@@ -211,6 +211,9 @@ export default function Home({ games: prefetchedGames, gamesError }) {
           token={token}
           profile={profile}
           onEnterArcade={() => setShowLoggedInView(true)}
+          requestOtp={requestOtp}
+          verifyOtp={verifyOtp}
+          setToken={setToken}
         />
       );
     }
