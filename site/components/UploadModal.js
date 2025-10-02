@@ -293,7 +293,7 @@ export default function UploadModal({
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>Create Post</h2>
+          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "bold", color: "#000" }}>Create Post</h2>
           <button
             onClick={onClose}
             style={{
@@ -312,7 +312,7 @@ export default function UploadModal({
         {/* Game Selection */}
         {availableGames.length > 0 && (
           <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#000" }}>
               Select Game:
             </label>
             <div ref={gamePickerRef} style={{ position: "relative" }}>
@@ -360,10 +360,10 @@ export default function UploadModal({
                     ?
                   </div>
                 )}
-                <span style={{ flex: 1, fontSize: "14px" }}>
+                <span style={{ flex: 1, fontSize: "14px", color: "#000" }}>
                   {selectedGame?.name || "Select a game"}
                 </span>
-                <span style={{ fontSize: "12px", color: "#666" }}>▼</span>
+                <span style={{ fontSize: "12px", color: "#000" }}>▼</span>
               </div>
               {showGamePicker && (
                 <div
@@ -434,7 +434,7 @@ export default function UploadModal({
                           ?
                         </div>
                       )}
-                      <span style={{ fontSize: "14px" }}>{game.name}</span>
+                      <span style={{ fontSize: "14px", color: "#000" }}>{game.name}</span>
                     </div>
                   ))}
                 </div>
@@ -956,7 +956,7 @@ export default function UploadModal({
         )}
         
         {postMessage ? (
-          <p style={{ marginTop: 8, opacity: 0.7 }}>{postMessage}</p>
+          <p style={{ marginTop: 8, opacity: 0.7, color: "#000" }}>{postMessage}</p>
         ) : null}
       </div>
 
@@ -1026,6 +1026,7 @@ export default function UploadModal({
           border-bottom: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 10px 10px 0 0;
           background: transparent;
+          color: #000;
         }
         .moments-footer {
           display: flex;
@@ -1049,7 +1050,7 @@ export default function UploadModal({
           appearance: none;
           border: 0;
           background: rgba(255, 255, 255, 0.75);
-          color: rgba(0, 0, 0, 0.8);
+          color: #000;
           border-radius: 9999px;
           padding: 6px 10px;
           cursor: pointer;
@@ -1068,7 +1069,7 @@ export default function UploadModal({
           appearance: none;
           border: 1px solid rgba(0, 0, 0, 0.18);
           background: rgba(255, 255, 255, 0.75);
-          color: rgba(0, 0, 0, 0.8);
+          color: #000;
           border-radius: 8px;
           padding: 8px 10px;
           cursor: pointer;
