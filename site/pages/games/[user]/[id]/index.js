@@ -1162,7 +1162,7 @@ export default function GamesPage({ gameData, error }) {
                             backgroundSize: "cover",
                             backgroundPosition: "center",
                             backgroundColor: "#f0f0f0",
-                            backgroundImage: player.image ? `url(${player.image})` : "none",
+                            backgroundImage: player.slackId ? `url(https://cachet.dunkirk.sh/users/${player.slackId}/r)` : "none",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -1173,7 +1173,7 @@ export default function GamesPage({ gameData, error }) {
                             transform: isHovered ? "scale(1.1)" : "scale(1)",
                             transition: "transform 0.3s ease, border-color 0.3s ease"
                           }}>
-                            {!player.image && (
+                            {!player.slackId && (
                               <span>{player.displayName ? player.displayName.charAt(0).toUpperCase() : "?"}</span>
                             )}
                           </div>
