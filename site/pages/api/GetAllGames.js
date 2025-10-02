@@ -66,19 +66,19 @@ export default async function handler(req, res) {
 
     if (includeFullData) {
       // For full data, fetch all posts and plays in bulk, then organize by game
-      console.log('Fetching all posts and plays in bulk...');
+      // console.log('Fetching all posts and plays in bulk...');
       
       // Fetch all posts
       const allPosts = await fetchAllPosts();
-      console.log(`Fetched ${allPosts.length} posts`);
+      // console.log(`Fetched ${allPosts.length} posts`);
       
       // Fetch all plays
       const allPlays = await fetchAllPlays();
-      console.log(`Fetched ${allPlays.length} plays`);
+      // console.log(`Fetched ${allPlays.length} plays`);
       
       // Fetch all users for play data
       const allUsers = await fetchAllUsers();
-      console.log(`Fetched ${allUsers.length} users`);
+      // console.log(`Fetched ${allUsers.length} users`);
       
       // Create lookup maps
       const postsByGameId = new Map();
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
           .filter(slackId => slackId && typeof slackId === 'string')
       )];
 
-      console.log(`Fetching profile data for ${uniqueCreatorSlackIds.length} unique creators`);
+      // console.log(`Fetching profile data for ${uniqueCreatorSlackIds.length} unique creators`);
 
       // Fetch profile data for each creator
       const creatorsWithProfiles = await Promise.all(
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
 
       // Filter out null results and return
       const validGames = gamesWithFullData.filter(game => game !== null);
-      console.log(`Returning ${validGames.length} games with full data`);
+      // console.log(`Returning ${validGames.length} games with full data`);
       return res.status(200).json(validGames);
     } else {
       // For basic data, fetch creator profiles and return the simple format
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
           .filter(slackId => slackId && typeof slackId === 'string')
       )];
 
-      console.log(`Fetching profile data for ${uniqueCreatorSlackIds.length} unique creators (basic mode)`);
+      // console.log(`Fetching profile data for ${uniqueCreatorSlackIds.length} unique creators (basic mode)`);
 
       // Fetch profile data for each creator
       const creatorsWithProfiles = await Promise.all(
@@ -358,7 +358,7 @@ async function fetchAllGamesWithShibaLink({ sort, limit } = {}) {
 }
 
 async function fetchPostsForGame(gameId) {
-  console.log('[GetAllGames] fetchPostsForGame gameId:', gameId);
+  // console.log('[GetAllGames] fetchPostsForGame gameId:', gameId);
   // First, try filtering server-side for performance and correctness
   const tryServerFilter = async () => {
     const params = new URLSearchParams();
@@ -369,7 +369,7 @@ async function fetchPostsForGame(gameId) {
     const url = `${encodeURIComponent(AIRTABLE_POSTS_TABLE)}?${params.toString()}`;
     const page = await airtableRequest(url, { method: 'GET' });
     const records = Array.isArray(page?.records) ? page.records : [];
-    console.log(`[GetAllGames] server filter posts count for ${gameId}:`, records.length);
+    // console.log(`[GetAllGames] server filter posts count for ${gameId}:`, records.length);
     return records;
   };
 
@@ -388,7 +388,7 @@ async function fetchPostsForGame(gameId) {
       allRecords = allRecords.concat(pageRecords);
       offset = page?.offset;
     } while (offset);
-    console.log(`[GetAllGames] fallback client-filter posts count for ${gameId}:`, allRecords.length);
+    // console.log(`[GetAllGames] fallback client-filter posts count for ${gameId}:`, allRecords.length);
     records = allRecords;
   }
 
@@ -471,17 +471,17 @@ async function fetchPostsForGame(gameId) {
 }
 
 async function fetchPlaysForGame(gameName, creatorSlackId) {
-  console.log('[GetAllGames] fetchPlaysForGame gameName:', gameName, 'creatorSlackId:', creatorSlackId);
+  // console.log('[GetAllGames] fetchPlaysForGame gameName:', gameName, 'creatorSlackId:', creatorSlackId);
   
   // First, we need to get the game's Airtable record ID to filter plays
   const gameRecord = await findGameBySlackIdAndName(creatorSlackId, gameName);
   if (!gameRecord) {
-    console.log('[GetAllGames] Game record not found for plays lookup');
+    // console.log('[GetAllGames] Game record not found for plays lookup');
     return [];
   }
   
   const gameId = gameRecord.id;
-  console.log('[GetAllGames] Found game ID for plays lookup:', gameId);
+  // console.log('[GetAllGames] Found game ID for plays lookup:', gameId);
   
   // First, try filtering server-side for performance
   const tryServerFilter = async () => {
@@ -496,7 +496,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
     const url = `${encodeURIComponent(AIRTABLE_PLAYS_TABLE)}?${params.toString()}`;
     const page = await airtableRequest(url, { method: 'GET' });
     const records = Array.isArray(page?.records) ? page.records : [];
-    console.log(`[GetAllGames] server filter plays count for game ${gameId}:`, records.length);
+    // console.log(`[GetAllGames] server filter plays count for game ${gameId}:`, records.length);
     return records;
   };
 
@@ -518,7 +518,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
       allRecords = allRecords.concat(pageRecords);
       offset = page?.offset;
     } while (offset);
-    console.log(`[GetAllGames] fallback client-filter plays count for game ${gameId}:`, allRecords.length);
+    // console.log(`[GetAllGames] fallback client-filter plays count for game ${gameId}:`, allRecords.length);
     records = allRecords;
   }
 
@@ -529,7 +529,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
       .filter(playerId => playerId && typeof playerId === 'string')
   )];
 
-  console.log(`[GetAllGames] unique player IDs for game ${gameId}:`, uniquePlayerIds.length);
+  // console.log(`[GetAllGames] unique player IDs for game ${gameId}:`, uniquePlayerIds.length);
 
   // Fetch player Slack IDs from Users table
   const playersWithSlackIds = await Promise.all(
@@ -555,7 +555,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
   );
 
   const uniquePlayerSlackIds = playersWithSlackIds.filter(slackId => slackId && typeof slackId === 'string');
-  console.log(`[GetAllGames] unique player Slack IDs for game ${gameId}:`, uniquePlayerSlackIds.length);
+  // console.log(`[GetAllGames] unique player Slack IDs for game ${gameId}:`, uniquePlayerSlackIds.length);
 
   // Fetch profile data for each player
   const playersWithProfiles = await Promise.all(

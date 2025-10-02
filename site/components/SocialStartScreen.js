@@ -313,7 +313,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
 
   // Debug: Track when active game changes
   useEffect(() => {
-    console.log('🎯 Active game changed:', activeGameId);
+    // Active game changed
   }, [activeGameId]);
 
   // Game switching logic - handle start/stop logging when activeGameId changes
@@ -323,13 +323,10 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
     const previousGame = previousActiveGameRef.current;
     const currentGame = activeGameId;
     
-    console.log('🔄 Game switching logic:', { previousGame, currentGame });
     
     // If there was a previous game and now there's a different game, log stop for previous
     if (previousGame && previousGame !== currentGame) {
       const previousGameRecord = games.find(g => g.id === previousGame);
-      console.log('🛑 Logging stop for previous game:', previousGame);
-      console.log('🛑 Previous game record:', previousGameRecord);
       
       logGamePlayStop({
         gameId: previousGame,
@@ -340,7 +337,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
       });
       
       // Reset the previous game component
-      console.log('🔄 Resetting previous game component:', previousGame);
       setGameComponentKeys(prev => ({
         ...prev,
         [previousGame]: (prev[previousGame] || 0) + 1
@@ -350,8 +346,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
     // If there's a current game, log start for it
     if (currentGame) {
       const gameRecord = games.find(g => g.id === currentGame);
-      console.log('🎮 Logging start for current game:', currentGame);
-      console.log('🎮 Game record:', gameRecord);
       
       logGamePlayStart({
         gameId: currentGame, // This is now the Airtable record ID
@@ -362,7 +356,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
     
     // If currentGame is null (game ended), reset the previous game
     if (!currentGame && previousGame) {
-      console.log('🔄 Game ended, resetting previous game component:', previousGame);
       setGameComponentKeys(prev => ({
         ...prev,
         [previousGame]: (prev[previousGame] || 0) + 1
@@ -426,15 +419,9 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
 
   // Fetch games client-side if not provided via props
   useEffect(() => {
-    console.log('🎮 SocialStartScreen games loading logic:', {
-      initialGames: initialGames?.length || 0,
-      initialGamesError,
-      hasInitialGames: !!(initialGames && initialGames.length > 0)
-    });
 
     // Only fetch if we don't have games from props
     if (!initialGames || initialGames.length === 0) {
-      console.log('🎮 No initial games, fetching client-side...');
       let cancelled = false;
       const fetchGames = async () => {
         try {
@@ -443,7 +430,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
           const res = await fetch('/api/GetAllGames?build=true&full=true');
           const data = await res.json().catch(() => []);
           if (!cancelled) {
-            console.log('🎮 Client-side games fetched:', Array.isArray(data) ? data.length : 0);
             setGames(Array.isArray(data) ? data : []);
           }
         } catch (e) {
@@ -459,7 +445,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
       };
     } else {
       // If we have games from props, use them and stop loading immediately
-      console.log('🎮 Using initial games from props:', initialGames.length);
       setGames(initialGames);
       setGamesLoading(false);
       setGamesError(null);
@@ -882,10 +867,9 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                             badges={p.badges}
                             gamePageUrl={`https://shiba.hackclub.com/games/${p.slackId}/${encodeURIComponent(p.gameName || '')}`}
                             onPlayCreated={(play) => {
-                              console.log('Play created:', play);
+                              // Play created
                             }}
                             onGameStart={() => {
-                              console.log('🎮 Game start triggered from Posts for:', p.gameName);
                               // Extract gameId from playLink for Posts
                               let postGameId = '';
                               if (p.PlayLink) {
@@ -914,8 +898,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                 return false;
                               });
                               
-                              console.log('🎮 Post game record found:', gameRecord);
-                              console.log('🎮 Post game record ID:', gameRecord?.id);
                               
                               // Set the active game to the Airtable record ID
                               setActiveGameId(gameRecord?.id || postGameId);
@@ -996,7 +978,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                         return 0; // Keep original order for same stamp status
                       })
                       .map((game, idx) => {
-                      console.log('Game data:', { game });
                       
                       // Use the game data directly - now we have playableURL from the full API response
                       const slackId = game['slack id'] || game.slackId || '';
@@ -1017,13 +998,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                         gameId = '';
                       }
                       
-                      console.log('Game fields:', {
-                        slackId,
-                        gameName, 
-                        playableURL,
-                        gameId,
-                        availableFields: Object.keys(game)
-                      });
 
                       return (
                         <div
@@ -1053,7 +1027,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                               }
                             }}
                             onClick={() => {
-                              console.log('🖱️ Game clicked:', gameId, 'Current activeGameId:', activeGameId);
                             }}
                           >
                             {gameId ? (
@@ -1065,12 +1038,8 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                 token={null}
                                 activeGameId={activeGameId}
                                 onPlayCreated={(play) => {
-                                  console.log('🎮 Play created for game:', gameId, play);
-                                  console.log('🎮 Current activeGameId:', activeGameId);
-                                  console.log('🎮 Is this the active game?', activeGameId === gameId);
                                 }}
                                 onGameStart={() => {
-                                  console.log('🎮 Game start triggered for:', gameId);
                                   // Find the game record to get the Airtable ID
                                   const gameRecord = games.find(g => {
                                     const playableURL = Array.isArray(g.playableURL) ? g.playableURL[0] : g.playableURL || '';
@@ -1087,8 +1056,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                     return false;
                                   });
                                   
-                                  console.log('🎮 Game record found:', gameRecord);
-                                  console.log('🎮 Game record ID:', gameRecord?.id);
                                   
                                   // Set the active game to the Airtable record ID
                                   setActiveGameId(gameRecord?.id || gameId);
@@ -1106,7 +1073,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                     const iframe = document.querySelector(`iframe[title="Play ${gameId}"]`);
                                     if (iframe && iframe.requestFullscreen) {
                                       iframe.requestFullscreen().catch((err) => {
-                                        console.log("Error attempting to enable fullscreen:", err);
                                       });
                                     }
                                   }, 200); // Reduced from 500ms to 200ms
@@ -1200,7 +1166,6 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                 return;
                               }
                               
-                              console.log('shibaChatTapped');
                               setSelectedMessageProject(game.id);
                             }}
                             onMouseEnter={(e) => {

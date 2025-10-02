@@ -414,7 +414,6 @@ export async function getServerSideProps() {
         return activityType === 'heartbeat';
       });
 
-      console.log(`Found ${heartbeats.length} heartbeat records`);
 
       // Group heartbeats by IP and session
       const sessionsByIP = {};

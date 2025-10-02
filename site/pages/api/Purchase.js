@@ -7,9 +7,9 @@ const AIRTABLE_SHOP_ITEMS_TABLE = process.env.AIRTABLE_SHOP_ITEMS_TABLE || 'Shop
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
-  console.log('Purchase endpoint called');
-  console.log('Request method:', req.method);
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  // console.log('Purchase endpoint called');
+  // console.log('Request method:', req.method);
+  // console.log('Request body:', JSON.stringify(req.body, null, 2));
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -27,10 +27,10 @@ export default async function handler(req, res) {
     shippingInfo
   } = req.body || {};
 
-  console.log('Extracted data:');
-  console.log('- token:', token ? 'present' : 'missing');
-  console.log('- shopItemId:', shopItemId);
-  console.log('- shippingInfo:', shippingInfo ? 'present' : 'missing');
+  // console.log('Extracted data:');
+  // console.log('- token:', token ? 'present' : 'missing');
+  // console.log('- shopItemId:', shopItemId);
+  // console.log('- shippingInfo:', shippingInfo ? 'present' : 'missing');
 
   if (!token || !shopItemId || !shippingInfo) {
     const missingFields = [];
@@ -46,22 +46,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Starting purchase process...');
+    // console.log('Starting purchase process...');
     
     // Find user by token
-    console.log('Looking up user by token...');
+    // console.log('Looking up user by token...');
     const user = await findUserByToken(token);
-    console.log('User lookup result:', user ? 'found' : 'not found');
+    // console.log('User lookup result:', user ? 'found' : 'not found');
     
     if (!user) {
       console.error('User not found for token');
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    console.log('User found:', { id: user.id, email: user.fields?.email });
+    // console.log('User found:', { id: user.id, email: user.fields?.email });
 
     // Check if shop item exists and get its price
-    console.log('Checking shop item...');
+    // console.log('Checking shop item...');
     const shopItem = await getShopItemById(shopItemId);
     if (!shopItem) {
       console.error('Shop item not found:', shopItemId);
@@ -71,10 +71,10 @@ export default async function handler(req, res) {
     const itemPrice = parseFloat(shopItem.fields?.Cost || 0);
     const inStock = shopItem.fields?.['In Stock'] || 0;
     
-    console.log('Shop item details:');
-    console.log('- Item:', shopItem.fields?.Name || 'Unknown');
-    console.log('- Cost:', itemPrice);
-    console.log('- In Stock:', inStock);
+    // console.log('Shop item details:');
+    // console.log('- Item:', shopItem.fields?.Name || 'Unknown');
+    // console.log('- Cost:', itemPrice);
+    // console.log('- In Stock:', inStock);
 
     if (inStock <= 0) {
       console.error('Item out of stock');
@@ -85,14 +85,14 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('Stock check passed');
+    // console.log('Stock check passed');
 
     // Check if user has enough SSS balance
     const userSSSBalance = user.fields?.['SSS Balance'] || 0;
     
-    console.log('SSS Balance check:');
-    console.log('- User SSS Balance:', userSSSBalance);
-    console.log('- Purchase Amount:', itemPrice);
+    // console.log('SSS Balance check:');
+    // console.log('- User SSS Balance:', userSSSBalance);
+    // console.log('- Purchase Amount:', itemPrice);
     
     if (userSSSBalance < itemPrice) {
       console.error('Insufficient SSS balance for purchase');
@@ -104,11 +104,11 @@ export default async function handler(req, res) {
       });
     }
     
-    console.log('SSS balance check passed');
+    // console.log('SSS balance check passed');
 
     // Generate 9-digit OrderID
     const orderId = generateOrderId();
-    console.log('Generated OrderID:', orderId);
+    // console.log('Generated OrderID:', orderId);
 
     // Create order record
     const orderData = {
@@ -130,18 +130,18 @@ export default async function handler(req, res) {
       }
     };
 
-    console.log('Order data to create:', JSON.stringify(orderData, null, 2));
+    // console.log('Order data to create:', JSON.stringify(orderData, null, 2));
 
-    console.log('Making Airtable request to create order...');
+    // console.log('Making Airtable request to create order...');
     const response = await airtableRequest(`${encodeURIComponent(AIRTABLE_ORDERS_TABLE)}`, {
       method: 'POST',
       body: JSON.stringify(orderData),
     });
 
-    console.log('Airtable response:', JSON.stringify(response, null, 2));
+    // console.log('Airtable response:', JSON.stringify(response, null, 2));
 
     if (response.id) {
-      console.log('Order created successfully');
+      // console.log('Order created successfully');
       return res.status(200).json({ 
         ok: true, 
         order: response,
@@ -161,8 +161,8 @@ export default async function handler(req, res) {
 
 async function airtableRequest(path, options = {}) {
   const url = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${path}`;
-  console.log('Airtable request URL:', url);
-  console.log('Airtable request options:', JSON.stringify(options, null, 2));
+  // console.log('Airtable request URL:', url);
+  // console.log('Airtable request options:', JSON.stringify(options, null, 2));
   
   const response = await fetch(url, {
     ...options,
@@ -173,8 +173,8 @@ async function airtableRequest(path, options = {}) {
     },
   });
   
-  console.log('Airtable response status:', response.status);
-  console.log('Airtable response headers:', Object.fromEntries(response.headers.entries()));
+  // console.log('Airtable response status:', response.status);
+  // console.log('Airtable response headers:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -183,41 +183,41 @@ async function airtableRequest(path, options = {}) {
   }
   
   const data = await response.json();
-  console.log('Airtable response data:', JSON.stringify(data, null, 2));
+  // console.log('Airtable response data:', JSON.stringify(data, null, 2));
   return data;
 }
 
 async function findUserByToken(token) {
-  console.log('findUserByToken called with token:', token ? 'present' : 'missing');
+  // console.log('findUserByToken called with token:', token ? 'present' : 'missing');
   
   const tokenEscaped = safeEscapeFormulaString(token);
-  console.log('Escaped token:', tokenEscaped);
+  // console.log('Escaped token:', tokenEscaped);
   
   const params = new URLSearchParams({
     filterByFormula: `{token} = "${tokenEscaped}"`,
     pageSize: '1',
   });
   
-  console.log('User lookup URL params:', params.toString());
+  // console.log('User lookup URL params:', params.toString());
   
   const data = await airtableRequest(`Users?${params.toString()}`, {
     method: 'GET',
   });
   
-  console.log('User lookup response:', JSON.stringify(data, null, 2));
+  // console.log('User lookup response:', JSON.stringify(data, null, 2));
   
   return (data.records && data.records[0]) || null;
 }
 
 async function getShopItemById(shopItemId) {
-  console.log('getShopItemById called with:', shopItemId);
+  // console.log('getShopItemById called with:', shopItemId);
   
   try {
     const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_SHOP_ITEMS_TABLE)}/${encodeURIComponent(shopItemId)}`, {
       method: 'GET',
     });
     
-    console.log('Shop item lookup response:', JSON.stringify(data, null, 2));
+    // console.log('Shop item lookup response:', JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
     console.error('Error fetching shop item:', error);

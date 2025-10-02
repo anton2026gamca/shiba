@@ -5,7 +5,7 @@ const RadarChart = dynamic(() => import('@/components/RadarChart'), { ssr: false
 
 export default function PlaytestTicket({ playtest, onPlaytestClick }) {
   const handlePlaytest = () => {
-    console.log('Playtest clicked for:', playtest.gameName);
+    // console.log('Playtest clicked for:', playtest.gameName);
     if (onPlaytestClick) {
       onPlaytestClick(playtest);
     }

@@ -28,12 +28,12 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    console.log('Found user:', user.id);
+    // console.log('Found user:', user.id);
 
     // Get playtests for this user
     const playtests = await getPlaytestsForUser(user.id);
     
-    console.log('Found playtests:', playtests);
+    // console.log('Found playtests:', playtests);
     
     return res.status(200).json({ ok: true, playtests });
   } catch (error) {
@@ -97,7 +97,7 @@ async function getAllRecordsWithPagination(tableName, filterFormula = null) {
     }
     
     offset = data.offset;
-    console.log(`Fetched ${data.records?.length || 0} records, total so far: ${allRecords.length}, has more: ${!!offset}`);
+    // console.log(`Fetched ${data.records?.length || 0} records, total so far: ${allRecords.length}, has more: ${!!offset}`);
   } while (offset);
   
   return allRecords;
@@ -105,44 +105,44 @@ async function getAllRecordsWithPagination(tableName, filterFormula = null) {
 
 async function getPlaytestsForUser(userId) {
   const userEscaped = safeEscapeFormulaString(userId);
-  console.log('Looking for playtests for user:', userId);
+  // console.log('Looking for playtests for user:', userId);
   
   let records = [];
   
   // Method 1: Try direct comparison with the linked record
   try {
     const filterFormula = `{Player} = "${userEscaped}"`;
-    console.log('Trying filter formula 1:', filterFormula);
+    // console.log('Trying filter formula 1:', filterFormula);
     
     records = await getAllRecordsWithPagination(AIRTABLE_PLAYTESTS_TABLE, filterFormula);
-    console.log('Method 1 results:', records.length);
+    // console.log('Method 1 results:', records.length);
   } catch (error) {
-    console.log('Method 1 failed:', error.message);
+    // console.log('Method 1 failed:', error.message);
   }
   
   // If that doesn't work, try method 2
   if (records.length === 0) {
     try {
       const filterFormula = `FIND("${userEscaped}", ARRAYJOIN({Player}))`;
-      console.log('Trying filter formula 2:', filterFormula);
+      // console.log('Trying filter formula 2:', filterFormula);
       
       records = await getAllRecordsWithPagination(AIRTABLE_PLAYTESTS_TABLE, filterFormula);
-      console.log('Method 2 results:', records.length);
+      // console.log('Method 2 results:', records.length);
     } catch (error) {
-      console.log('Method 2 failed:', error.message);
+      // console.log('Method 2 failed:', error.message);
     }
   }
   
   // If still no results, try method 3 - get all and filter client-side
   if (records.length === 0) {
     try {
-      console.log('Falling back to client-side filtering...');
+      // console.log('Falling back to client-side filtering...');
       const allRecords = await getAllRecordsWithPagination(AIRTABLE_PLAYTESTS_TABLE);
-      console.log('Got all records:', allRecords.length);
+      // console.log('Got all records:', allRecords.length);
       
       records = allRecords.filter(record => {
         const player = record.fields['Player'];
-        console.log('Checking record player field:', player, 'against userId:', userId);
+        // console.log('Checking record player field:', player, 'against userId:', userId);
         
         // Handle both array and single value cases
         if (Array.isArray(player)) {
@@ -153,21 +153,21 @@ async function getPlaytestsForUser(userId) {
         return false;
       });
       
-      console.log('Method 3 (client-side) results:', records.length);
+      // console.log('Method 3 (client-side) results:', records.length);
     } catch (error) {
-      console.log('Method 3 failed:', error.message);
+      // console.log('Method 3 failed:', error.message);
     }
   }
   
   if (!records || records.length === 0) {
-    console.log('No playtests found for user');
+    // console.log('No playtests found for user');
     return [];
   }
   
   // Get game details for each playtest
   const playtestsWithDetails = await Promise.all(
     records.map(async (playtest) => {
-      console.log('Playtest fields:', JSON.stringify(playtest.fields, null, 2));
+      // console.log('Playtest fields:', JSON.stringify(playtest.fields, null, 2));
       
       const gameToTestId = Array.isArray(playtest.fields.GameToTest) 
         ? playtest.fields.GameToTest[0] 
@@ -212,14 +212,14 @@ async function getPlaytestsForUser(userId) {
                   gameDetails.ownerSlackId = ownerData.fields['slack id'] || '';
                 }
               } catch (error) {
-                console.log('Error fetching owner details for:', ownerId, error.message);
+                // console.log('Error fetching owner details for:', ownerId, error.message);
               }
             }
             
-            console.log('Fetched game details:', gameDetails);
+            // console.log('Fetched game details:', gameDetails);
           }
         } catch (error) {
-          console.log('Error fetching game details for:', gameToTestId, error.message);
+          // console.log('Error fetching game details for:', gameToTestId, error.message);
         }
       }
       
@@ -247,6 +247,6 @@ async function getPlaytestsForUser(userId) {
     })
   );
   
-  console.log('Returning formatted playtests:', playtestsWithDetails.length);
+  // console.log('Returning formatted playtests:', playtestsWithDetails.length);
   return playtestsWithDetails;
 }

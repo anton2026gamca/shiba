@@ -61,7 +61,7 @@ export default async function handler(req, res) {
     
     // If both slackId and email are provided, try slackId first
     if (slackId && email) {
-      console.log('Both slackId and email provided, trying slackId first');
+      // console.log('Both slackId and email provided, trying slackId first');
       
       try {
         hackatimeUserId = slackId;
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         
         // If we got projects from slackId, return them
         if (projects.length > 0) {
-          console.log(`Found ${projects.length} projects using slackId method`);
+          // console.log(`Found ${projects.length} projects using slackId method`);
           res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=300');
           return res.status(200).json({ 
             projects, 
@@ -79,11 +79,11 @@ export default async function handler(req, res) {
             userId: hackatimeUserId
           });
         } else {
-          console.log('No projects found with slackId, falling back to email method');
+          // console.log('No projects found with slackId, falling back to email method');
           fallbackUsed = true;
         }
       } catch (error) {
-        console.log('slackId method failed, falling back to email method:', error.message);
+        // console.log('slackId method failed, falling back to email method:', error.message);
         fallbackUsed = true;
       }
     }
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     // 1. Only email is provided, OR
     // 2. Both are provided but slackId returned no projects or failed
     if (email && (!slackId || fallbackUsed)) {
-      console.log('Looking up Hackatime user by email:', email);
+      // console.log('Looking up Hackatime user by email:', email);
       const lookupResponse = await fetch(`https://hackatime.hackclub.com/api/v1/users/lookup_email/${encodeURIComponent(email)}`, {
         headers: {
           "Rack-Attack-Bypass": process.env.HACKATIME_RATE_LIMIT_BYPASS || '',
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found with that email' });
       }
       
-      console.log('Found Hackatime user ID:', hackatimeUserId);
+      // console.log('Found Hackatime user ID:', hackatimeUserId);
       method = 'email';
     } else if (slackId && !email) {
       // Use slackId directly if only slackId is provided

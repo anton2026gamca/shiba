@@ -42,13 +42,13 @@ export default function StartScreen({ setToken, requestOtp, verifyOtp, onBackToS
           }
         });
       }
-      console.log(`User visited with referral code: ${sentby.trim()}`);
+      // console.log(`User visited with referral code: ${sentby.trim()}`);
     }
   }, [sentby]);
 
   useEffect(() => {
     if (code) {
-      console.log("Authorization code:", code);
+      // console.log("Authorization code:", code);
       // Make a request to /api/newLogin with the code to get the token
       const fetchToken = async () => {
         try {
@@ -117,9 +117,9 @@ export default function StartScreen({ setToken, requestOtp, verifyOtp, onBackToS
   }, []);
 
   const onRequest = async () => {
-    console.log("onRequest called, email:", email, "requestOtp:", !!requestOtp);
+    // console.log("onRequest called, email:", email, "requestOtp:", !!requestOtp);
     if (!requestOtp) {
-      console.log("requestOtp not available");
+      // console.log("requestOtp not available");
       return;
     }
     setLoading(true);
@@ -303,9 +303,9 @@ export default function StartScreen({ setToken, requestOtp, verifyOtp, onBackToS
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="orpheus@hackclub.com"
                   onKeyDown={(e) => {
-                    console.log("Key pressed:", e.key);
+                    // console.log("Key pressed:", e.key);
                     if (e.key === "Enter") {
-                      console.log("Enter key pressed, calling onRequest");
+                      // console.log("Enter key pressed, calling onRequest");
                       onRequest();
                     }
                   }}

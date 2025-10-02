@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(updatePayload),
     });
 
-    console.log(`Removed shomato from post ${PostID} (record: ${postRecord.id}) for user ${user.id}`);
+    // console.log(`Removed shomato from post ${PostID} (record: ${postRecord.id}) for user ${user.id}`);
     
     return res.status(200).json({ 
       ok: true, 

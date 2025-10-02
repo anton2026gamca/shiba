@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(updatePayload),
     });
 
-    console.log(`Updated time spent on asset for post ${postId} (record: ${postRecord.id}) to ${timeSpentOnAsset} hours`);
+    // console.log(`Updated time spent on asset for post ${postId} (record: ${postRecord.id}) to ${timeSpentOnAsset} hours`);
     
     return res.status(200).json({ 
       ok: true, 

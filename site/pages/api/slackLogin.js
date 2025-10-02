@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: "Code is required" });
-  console.log("Received code:", code);
+  // console.log("Received code:", code);
 
   try {
     const response = await fetch("https://slack.com/api/oauth.v2.access", {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     if (!response.ok) throw new Error("Failed to exchange code for token");
 
     const json = await response.json();
-    console.log("Slack OAuth response:", json);
+    // console.log("Slack OAuth response:", json);
     const token = json.authed_user.access_token;
 
     const userResponse = await fetch("https://slack.com/api/users.info", {

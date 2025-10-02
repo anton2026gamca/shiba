@@ -19,25 +19,25 @@ export default async function handler(req, res) {
   try {
     const { token, challengeId, status } = req.body || {};
     
-    console.log('[adjustGameChallenge] Request body:', req.body);
-    console.log('[adjustGameChallenge] Extracted values:', { token, challengeId, status });
+    // console.log('[adjustGameChallenge] Request body:', req.body);
+    // console.log('[adjustGameChallenge] Extracted values:', { token, challengeId, status });
     
     if (!token) {
-      console.log('[adjustGameChallenge] Missing token');
+      // console.log('[adjustGameChallenge] Missing token');
       return res.status(400).json({ message: 'Token is required' });
     }
     
     if (!challengeId) {
-      console.log('[adjustGameChallenge] Missing challengeId');
+      // console.log('[adjustGameChallenge] Missing challengeId');
       return res.status(400).json({ message: 'Challenge ID is required' });
     }
     
     if (!status) {
-      console.log('[adjustGameChallenge] Missing status');
+      // console.log('[adjustGameChallenge] Missing status');
       return res.status(400).json({ message: 'Status is required' });
     }
 
-    console.log(`[adjustGameChallenge] Updating challenge ${challengeId} to status: ${status} for token: ${token}`);
+    // console.log(`[adjustGameChallenge] Updating challenge ${challengeId} to status: ${status} for token: ${token}`);
 
     // Update the challenge record in Airtable
     const updateData = {
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(updateData)
     });
 
-    console.log(`[adjustGameChallenge] Successfully updated challenge ${challengeId}`);
+    // console.log(`[adjustGameChallenge] Successfully updated challenge ${challengeId}`);
     
     return res.status(200).json({ 
       success: true, 

@@ -26,23 +26,19 @@ const BASE_DELAY = 1000; // 1 second base delay
 // Continuous sync function
 async function runContinuousSync() {
   if (isSyncRunning) {
-    console.log('Sync already running, skipping...');
     return;
   }
 
   isSyncRunning = true;
   syncCount++;
-  console.log(`\n🔄 Starting continuous sync #${syncCount} at ${new Date().toISOString()}`);
 
   try {
     const result = await performFullSync();
     lastSyncResult = result;
     lastSyncTime = new Date();
     syncError = null;
-    console.log(`✅ Continuous sync #${syncCount} completed successfully at ${lastSyncTime.toISOString()}`);
     
     // Start the next sync immediately
-    console.log('🔄 Starting next sync immediately...');
     setTimeout(() => {
       isSyncRunning = false; // Allow next sync to start
       runContinuousSync();
@@ -53,7 +49,6 @@ async function runContinuousSync() {
     console.error(`❌ Continuous sync #${syncCount} failed:`, error.message);
     
     // Even on error, try again after a short delay
-    console.log('🔄 Retrying sync after error...');
     setTimeout(() => {
       isSyncRunning = false; // Allow retry to start
       runContinuousSync();
@@ -73,7 +68,6 @@ async function retryWithBackoff(fn, maxRetries = MAX_RETRIES) {
         }
         
         const delay = BASE_DELAY * Math.pow(2, attempt); // Exponential backoff
-        console.log(`⚠️ Rate limited (attempt ${attempt + 1}/${maxRetries + 1}), backing off for ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
       }
@@ -89,16 +83,12 @@ async function performFullSync() {
   }
 
   // Start with user daysActive sync first
-  console.log('Starting user daysActive sync...');
   const userSyncResult = await syncUserDaysActive();
   
-  console.log('User daysActive sync complete. Now starting games sync...');
-  console.log('Fetching all games from Airtable...');
   
   // Fetch all games with pagination, only specific fields
   const allGames = await fetchAllGames();
   
-  console.log(`Fetched ${allGames.length} games. Now fetching Hackatime data per user...`);
   
   // Group games by user (slack id) to minimize API calls
   const gamesByUser = {};
@@ -123,14 +113,12 @@ async function performFullSync() {
       return false;
     });
   });
-  console.log(`Found ${uniqueUsersAll.length} unique users; ${uniqueUsers.length} with Hackatime Projects`);
   
   // Fetch Hackatime data for each unique user with smart retry
   const userHackatimeData = {};
   const userSpansData = {};
   for (let i = 0; i < uniqueUsers.length; i++) {
     const slackId = uniqueUsers[i];
-    console.log(`Fetching Hackatime data for user ${i + 1}/${uniqueUsers.length}: ${slackId}`);
     
     try {
       // Use retry with backoff for Hackatime API calls
@@ -152,7 +140,6 @@ async function performFullSync() {
     }
   }
   
-  console.log('Hackatime data fetched. Now updating games...');
   
   // Track claimed projects per user to prevent double counting
   const userClaimedProjects = {};
@@ -170,18 +157,15 @@ async function performFullSync() {
     const fields = game.fields || {};
     const slackId = fields['slack id'];
     
-    console.log(`Processing game ${i + 1}/${allGames.length}: ${fields.Name}`);
     
     // Skip update if no slack id or hackatime projects
     if (!slackId || !fields['Hackatime Projects']) {
-      console.log(`Skipping ${fields.Name} - missing slack id or hackatime projects`);
       skippedCount++;
       continue;
     }
     
     // Skip if we don't have Hackatime data for this user (due to rate limiting)
     if (!userHackatimeData[slackId]) {
-      console.log(`Skipping ${fields.Name} - no Hackatime data available for user ${slackId} (likely rate limited)`);
       skippedCount++;
       continue;
     }
@@ -204,7 +188,6 @@ async function performFullSync() {
       
       if (updateSuccess) {
         successCount++;
-        console.log(`✅ Updated ${fields.Name}: ${totalSeconds} seconds`);
       } else {
         errorCount++;
         console.error(`❌ Failed to update ${fields.Name} in Airtable`);
@@ -225,7 +208,6 @@ async function performFullSync() {
     }
   }
   
-  console.log(`Games sync complete! ${successCount} successful, ${errorCount} errors, ${skippedCount} skipped`);
   
   return {
     success: true,
@@ -267,7 +249,6 @@ async function fetchAllGames() {
     params.set('pageSize', '100');
     if (offset) params.set('offset', offset);
     
-    console.log(`Fetching games page... (offset: ${offset || 'none'})`);
     const page = await airtableRequest(`${encodeURIComponent(AIRTABLE_GAMES_TABLE)}?${params.toString()}`, {
       method: 'GET',
     });
@@ -276,7 +257,6 @@ async function fetchAllGames() {
     allRecords = allRecords.concat(pageRecords);
     offset = page?.offset;
     
-    console.log(`Fetched ${pageRecords.length} games, total so far: ${allRecords.length}`);
   } while (offset);
   
   return allRecords;
@@ -291,7 +271,6 @@ async function fetchAllUsers() {
     params.set('pageSize', '100');
     if (offset) params.set('offset', offset);
     
-    console.log(`Fetching users page... (offset: ${offset || 'none'})`);
     const page = await airtableRequest(`${encodeURIComponent(AIRTABLE_USERS_TABLE)}?${params.toString()}`, {
       method: 'GET',
     });
@@ -300,7 +279,6 @@ async function fetchAllUsers() {
     allRecords = allRecords.concat(pageRecords);
     offset = page?.offset;
     
-    console.log(`Fetched ${pageRecords.length} users, total so far: ${allRecords.length}`);
   } while (offset);
   
   return allRecords;
@@ -319,7 +297,6 @@ async function fetchHackatimeData(slackId) {
   })();
   const url = `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(slackId)}/stats?features=projects&start_date=${start_date}&end_date=${end_date}`;
   
-  console.log(`Fetching Hackatime data for ${slackId}...`);
   const headers = { Accept: 'application/json' };
   if (process.env.RACK_ATTACK_BYPASS) {
     headers['Rack-Attack-Bypass'] = process.env.RACK_ATTACK_BYPASS;
@@ -355,7 +332,6 @@ function calculateProjectSecondsWithClaiming(hackatimeData, gameProjectsField, c
     ? gameProjectsField.filter(Boolean)
     : (typeof gameProjectsField === 'string' ? gameProjectsField.split(',').map(p => p.trim()) : []);
   
-  console.log(`  └─ Game projects: [${projectNames.join(', ')}]`);
   
   for (const projectName of projectNames) {
     if (!projectName) continue;
@@ -364,7 +340,6 @@ function calculateProjectSecondsWithClaiming(hackatimeData, gameProjectsField, c
     
     // Check if this project has already been claimed by another game for this user
     if (claimedProjects.has(projectNameLower)) {
-      console.log(`  ├─ Project "${projectName}": ALREADY CLAIMED (0s)`);
       continue;
     }
     
@@ -376,9 +351,7 @@ function calculateProjectSecondsWithClaiming(hackatimeData, gameProjectsField, c
     if (matchingProject) {
       totalSeconds += matchingProject.total_seconds || 0;
       claimedProjects.add(projectNameLower); // Claim this project
-      console.log(`  ├─ Project "${projectName}": ${matchingProject.total_seconds}s (CLAIMED)`);
     } else {
-      console.log(`  ├─ Project "${projectName}": NOT FOUND in Hackatime data`);
     }
   }
   
@@ -427,7 +400,6 @@ async function fetchHackatimeSpans(slackId) {
     
     const url = `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(slackId)}/heartbeats/spans?start_date=${start_date}&project=${encodeURIComponent(project.name)}`;
     
-    console.log(`Fetching spans for project "${project.name}"...`);
     const headers = { Accept: 'application/json' };
     if (process.env.RACK_ATTACK_BYPASS) {
       headers['Rack-Attack-Bypass'] = process.env.RACK_ATTACK_BYPASS;
@@ -437,12 +409,10 @@ async function fetchHackatimeSpans(slackId) {
       const response = await fetch(url, { headers });
       
       if (response.status === 429) {
-        console.log(`Rate limited for project "${project.name}", skipping...`);
         continue;
       }
       
       if (!response.ok) {
-        console.log(`Failed to fetch spans for project "${project.name}": ${response.status}`);
         continue;
       }
       
@@ -508,7 +478,6 @@ async function processGamePosts(game, spansData, gameProjects) {
   const gameId = game.id;
   const gameName = game.fields?.Name || 'Unknown Game';
   
-  console.log(`Processing posts for game: ${gameName}`);
   
   // Get project names for this game
   const projectNames = Array.isArray(gameProjects) 
@@ -516,13 +485,11 @@ async function processGamePosts(game, spansData, gameProjects) {
     : (typeof gameProjects === 'string' ? gameProjects.split(',').map(p => p.trim()) : []);
   
   if (projectNames.length === 0) {
-    console.log(`No projects found for game ${gameName}, skipping post processing`);
     return;
   }
   
   // Fetch all posts for this game
   const posts = await fetchPostsForGame(gameId);
-  console.log(`Found ${posts.length} posts for game ${gameName}`);
   
   if (posts.length === 0) {
     return;
@@ -532,13 +499,11 @@ async function processGamePosts(game, spansData, gameProjects) {
   const postsToProcess = posts.filter(post => {
     const timeSpentOnAsset = post.fields?.['TimeSpentOnAsset'];
     if (timeSpentOnAsset !== null && timeSpentOnAsset !== undefined && timeSpentOnAsset !== '') {
-      console.log(`Skipping post ${post.id} - TimeSpentOnAsset already populated: ${timeSpentOnAsset}`);
       return false;
     }
     return true;
   });
   
-  console.log(`Processing ${postsToProcess.length} posts (${posts.length - postsToProcess.length} skipped due to existing TimeSpentOnAsset)`);
   
   if (postsToProcess.length === 0) {
     return;
@@ -573,7 +538,6 @@ async function processGamePosts(game, spansData, gameProjects) {
     // Update the post with calculated hours
     try {
       await updatePostHoursSpent(postId, hoursSpent);
-      console.log(`Updated post ${i + 1}/${postsToProcess.length}: ${hoursSpent.toFixed(2)} hours`);
     } catch (error) {
       console.error(`Failed to update post ${postId}:`, error.message);
     }
@@ -737,7 +701,6 @@ async function updatePostHoursSpent(postId, hoursSpent) {
 
 // Function to sync user daysActive data
 async function syncUserDaysActive() {
-  console.log('Fetching all users and games from Airtable...');
   
   // Fetch all users and games in parallel
   const [allUsers, allGames] = await Promise.all([
@@ -745,7 +708,6 @@ async function syncUserDaysActive() {
     fetchAllGames()
   ]);
   
-  console.log(`Fetched ${allUsers.length} users and ${allGames.length} games. Processing daysActive data...`);
   
   // Group games by user (slack id) for efficient lookup
   const gamesByUser = {};
@@ -769,11 +731,9 @@ async function syncUserDaysActive() {
     const slackId = fields['slack id'];
     const currentDaysActive = fields['daysActive'] || '';
     
-    console.log(`Processing user ${i + 1}/${allUsers.length}: ${fields.Name || 'Unknown'} (${slackId})`);
     
     // Skip if no slack id
     if (!slackId) {
-      console.log(`Skipping user - missing slack id`);
       userSkippedCount++;
       continue;
     }
@@ -797,7 +757,6 @@ async function syncUserDaysActive() {
       
       // Only update if the string would change
       if (newDaysActiveString !== currentDaysActive) {
-        console.log(`Updating daysActive for ${fields.Name}: "${newDaysActiveString}"`);
         
         const updateSuccess = await retryWithBackoff(async () => {
           return await updateUserDaysActive(user.id, newDaysActiveString);
@@ -805,13 +764,11 @@ async function syncUserDaysActive() {
         
         if (updateSuccess) {
           userSuccessCount++;
-          console.log(`✅ Updated ${fields.Name} daysActive`);
         } else {
           userErrorCount++;
           console.error(`❌ Failed to update ${fields.Name} daysActive`);
         }
       } else {
-        console.log(`Skipping ${fields.Name} - daysActive unchanged`);
         userSkippedCount++;
       }
       
@@ -824,7 +781,6 @@ async function syncUserDaysActive() {
     }
   }
   
-  console.log(`User daysActive sync complete! ${userSuccessCount} successful, ${userErrorCount} errors, ${userSkippedCount} skipped`);
   
   return {
     totalUsers: allUsers.length,
@@ -867,7 +823,6 @@ app.post('/api/sync', async (req, res) => {
   }
 
   try {
-    console.log('Manual sync triggered via API...');
     const result = await performFullSync();
     res.json(result);
   } catch (error) {
@@ -890,14 +845,11 @@ app.use((req, res) => {
 });
 
 // Start continuous sync
-console.log('🚀 Starting continuous sync loop...');
 setTimeout(() => {
-  console.log('🔄 Starting first sync in 10 seconds...');
   runContinuousSync();
 }, 10000);
 
 app.listen(PORT, () => {
-  console.log(`HackatimeSync server is running on port ${PORT}`);
 });
 
 module.exports = app;

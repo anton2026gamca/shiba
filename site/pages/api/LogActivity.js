@@ -7,7 +7,7 @@ const AIRTABLE_ACTIVITY_TABLE = 'User Activity';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
-  console.log('📡 LogActivity API called:', { method: req.method, body: req.body });
+  // console.log('📡 LogActivity API called:', { method: req.method, body: req.body });
   
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -15,18 +15,18 @@ export default async function handler(req, res) {
   }
 
   if (!AIRTABLE_API_KEY) {
-    console.log('❌ Missing AIRTABLE_API_KEY');
+    // console.log('❌ Missing AIRTABLE_API_KEY');
     return res.status(500).json({ message: 'Server configuration error' });
   }
 
   const { token, activityType, timeSpent, component, sessionId, metadata, gameRecordId } = req.body || {};
-  console.log('📊 Activity data:', { token: token ? 'present' : 'missing', activityType, timeSpent, component, sessionId });
+  // console.log('📊 Activity data:', { token: token ? 'present' : 'missing', activityType, timeSpent, component, sessionId });
   
   // Validate gameRecordId format if provided (should be a valid Airtable record ID)
   if (gameRecordId) {
     const airtableRecordIdRegex = /^rec[a-zA-Z0-9]{14}$/;
     if (!airtableRecordIdRegex.test(gameRecordId)) {
-      console.log('❌ Invalid gameRecordId format:', gameRecordId);
+      // console.log('❌ Invalid gameRecordId format:', gameRecordId);
       return res.status(400).json({ message: 'Invalid game record ID format' });
     }
   }
@@ -62,19 +62,19 @@ export default async function handler(req, res) {
   };
   
   const clientIP = getClientIP(req);
-  console.log('🌐 Client IP detected:', clientIP);
+  // console.log('🌐 Client IP detected:', clientIP);
   
   // Allow activity logging even without token (for anonymous users)
   let userRecord = null;
   if (token && token !== 'null' && token !== null) {
     try {
       userRecord = await findUserByToken(token);
-      console.log('👤 User found:', userRecord ? 'Yes' : 'No');
+      // console.log('👤 User found:', userRecord ? 'Yes' : 'No');
     } catch (error) {
-      console.log('⚠️ User lookup failed, proceeding without user:', error.message);
+      // console.log('⚠️ User lookup failed, proceeding without user:', error.message);
     }
   } else {
-    console.log('👤 No valid token provided, logging as anonymous user');
+    // console.log('👤 No valid token provided, logging as anonymous user');
   }
   
   if (typeof timeSpent !== 'number' || timeSpent < 0) {
@@ -113,14 +113,14 @@ export default async function handler(req, res) {
       fields: fields
     };
 
-    console.log('📝 Creating Airtable record:', activityRecord);
+    // console.log('📝 Creating Airtable record:', activityRecord);
     
     const response = await airtableRequest(`${encodeURIComponent(AIRTABLE_ACTIVITY_TABLE)}`, {
       method: 'POST',
       body: JSON.stringify(activityRecord),
     });
     
-    console.log('✅ Airtable response:', response);
+    // console.log('✅ Airtable response:', response);
 
     return res.status(200).json({ 
       ok: true, 
@@ -141,14 +141,14 @@ async function airtableRequest(path, options = {}) {
     ...options.headers,
   };
 
-  console.log('🌐 Making Airtable request:', { url, method: options.method });
+  // console.log('🌐 Making Airtable request:', { url, method: options.method });
 
   const response = await fetch(url, {
     ...options,
     headers,
   });
 
-  console.log('📡 Airtable response status:', response.status);
+  // console.log('📡 Airtable response status:', response.status);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -157,7 +157,7 @@ async function airtableRequest(path, options = {}) {
   }
 
   const result = await response.json();
-  console.log('✅ Airtable success:', result);
+  // console.log('✅ Airtable success:', result);
   return result;
 }
 
@@ -165,17 +165,17 @@ async function findUserByToken(token) {
   const formula = `{Token} = "${safeEscapeFormulaString(token)}"`;
   const params = new URLSearchParams({ filterByFormula: formula });
   
-  console.log('🔍 Looking up user by token:', { formula, params: params.toString() });
+  // console.log('🔍 Looking up user by token:', { formula, params: params.toString() });
   
   const response = await airtableRequest(`${encodeURIComponent(AIRTABLE_USERS_TABLE)}?${params.toString()}`);
   
-  console.log('👤 User lookup result:', { recordCount: response.records?.length || 0 });
+  // console.log('👤 User lookup result:', { recordCount: response.records?.length || 0 });
   
   if (response.records && response.records.length > 0) {
-    console.log('✅ User found:', response.records[0].id);
+    // console.log('✅ User found:', response.records[0].id);
     return response.records[0];
   }
   
-  console.log('❌ No user found for token');
+  // console.log('❌ No user found for token');
   return null;
 }

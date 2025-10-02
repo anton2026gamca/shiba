@@ -19,9 +19,9 @@
  * });
  * 
  * if (result.ok) {
- *   console.log('File uploaded successfully!');
- *   console.log('Access URL:', result.url);
- *   console.log('File ID:', result.fileId);
+ *   // console.log('File uploaded successfully!');
+ *   // console.log('Access URL:', result.url);
+ *   // console.log('File ID:', result.fileId);
  * } else {
  *   console.error('Upload failed:', result.error);
  * }
@@ -158,7 +158,7 @@ export function isSupportedFileType(file) {
  * 
  * @example
  * const file = event.target.files[0];
- * console.log(`File size: ${formatFileSize(file.size)}`);
+ * // console.log(`File size: ${formatFileSize(file.size)}`);
  * // Output: "File size: 2.5 MB"
  */
 export function formatFileSize(bytes) {

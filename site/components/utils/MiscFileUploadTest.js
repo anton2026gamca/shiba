@@ -49,7 +49,7 @@ export default function MiscFileUploadTest() {
           size: selectedFile.size
         };
         
-        console.log('Attachment object for post:', attachmentForPost);
+        // console.log('Attachment object for post:', attachmentForPost);
         
       } else {
         setError(uploadResult.error);

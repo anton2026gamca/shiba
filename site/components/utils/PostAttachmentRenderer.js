@@ -81,7 +81,7 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
           onTimeUpdated(postId, newTimeSpent);
         }
         
-        console.log('Time updated successfully:', data);
+        // console.log('Time updated successfully:', data);
       } else {
         console.error('Failed to update time:', data.message);
         alert('Failed to update time: ' + (data.message || 'Unknown error'));
@@ -2714,7 +2714,7 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
       {/* Removed as per edit hint */}
 
       {/* Debug logging */}
-      {console.log('PostAttachmentRenderer artlog check:', {
+      {// console.log('PostAttachmentRenderer artlog check:', {
         postType,
         timelapseVideoId,
         githubImageLink,
@@ -2765,10 +2765,10 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
                   console.error('Video src:', timelapseVideoId);
                 }}
                 onLoadStart={() => {
-                  console.log('Video loading started:', timelapseVideoId);
+                  // console.log('Video loading started:', timelapseVideoId);
                 }}
                 onCanPlay={() => {
-                  console.log('Video can play:', timelapseVideoId);
+                  // console.log('Video can play:', timelapseVideoId);
                 }}
               />
 

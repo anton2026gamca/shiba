@@ -879,7 +879,7 @@ function DetailView({
 
   const loadFeedbackResponses = () => {
     if (!game?.Feedback || !Array.isArray(game.Feedback) || game.Feedback.length === 0) {
-      console.log("No feedback to load for game:", game?.id);
+      // console.log("No feedback to load for game:", game?.id);
       return;
     }
 
@@ -888,12 +888,12 @@ function DetailView({
       const messages = {};
       
       // Use the feedbackResponses array that's already processed by the API
-      console.log("game.feedbackResponses:", game.feedbackResponses);
+      // console.log("game.feedbackResponses:", game.feedbackResponses);
       if (game.feedbackResponses && Array.isArray(game.feedbackResponses)) {
-        console.log("Processing feedbackResponses array with length:", game.feedbackResponses.length);
+        // console.log("Processing feedbackResponses array with length:", game.feedbackResponses.length);
         game.feedbackResponses.forEach((feedbackResponse, index) => {
           const feedbackKey = `${game.id}-${index}`;
-          console.log(`Processing feedback ${index}:`, {
+          // console.log(`Processing feedback ${index}:`, {
             feedbackKey,
             feedbackResponse,
             response: feedbackResponse.response,
@@ -903,20 +903,20 @@ function DetailView({
           // Convert "None" to null for consistency
           if (feedbackResponse.response && feedbackResponse.response !== "None") {
             responses[feedbackKey] = feedbackResponse.response;
-            console.log(`Set response for ${feedbackKey}:`, feedbackResponse.response);
+            // console.log(`Set response for ${feedbackKey}:`, feedbackResponse.response);
           }
           
           if (feedbackResponse.responseMessage && feedbackResponse.responseMessage !== "None") {
             messages[feedbackKey] = feedbackResponse.responseMessage;
-            console.log(`Set message for ${feedbackKey}:`, feedbackResponse.responseMessage);
+            // console.log(`Set message for ${feedbackKey}:`, feedbackResponse.responseMessage);
           }
         });
       } else {
-        console.log("No feedbackResponses array found or it's not an array");
+        // console.log("No feedbackResponses array found or it's not an array");
       }
       
-      console.log("Setting feedback responses:", { responses, messages });
-      console.log("Game object received:", {
+      // console.log("Setting feedback responses:", { responses, messages });
+      // console.log("Game object received:", {
         id: game.id,
         feedbackResponses: game.feedbackResponses,
         Feedback: game.Feedback
@@ -931,7 +931,7 @@ function DetailView({
   useEffect(() => {
     // Fetch Hackatime projects via server proxy to avoid CORS
     const fetchProjects = async () => {
-      console.log('Fetching projects for SlackId:', SlackId, 'and gameId:', game?.id);
+      // console.log('Fetching projects for SlackId:', SlackId, 'and gameId:', game?.id);
       if (!SlackId) return;
       let url = `/api/hackatimeProjects?slackId=${encodeURIComponent(SlackId)}`;
       if (userProfile?.email) {
@@ -945,8 +945,8 @@ function DetailView({
         const json = await res.json().catch(() => ({}));
         const names = Array.isArray(json?.projects) ? json.projects : [];
         const projectsWithTimeData = Array.isArray(json?.projectsWithTime) ? json.projectsWithTime : [];
-        console.log('Hackatime API response:', json);
-        console.log('Projects with time:', projectsWithTimeData);
+        // console.log('Hackatime API response:', json);
+        // console.log('Projects with time:', projectsWithTimeData);
         setAvailableProjects(names);
         setProjectsWithTime(projectsWithTimeData);
       } catch (e) {
@@ -1449,7 +1449,7 @@ function DetailView({
                     const checked = current.includes(name);
                     const projectTime = projectsWithTime.find(p => p.name === name)?.time || 0;
                     const timeDisplay = formatTime(projectTime);
-                    console.log(`Project: ${name}, Time: ${projectTime}, Display: ${timeDisplay}`);
+                    // console.log(`Project: ${name}, Time: ${projectTime}, Display: ${timeDisplay}`);
                     return (
                       <div
                         key={name}
@@ -1614,7 +1614,7 @@ function DetailView({
                   
                   const feedbackKey = `${game.id}-${index}`;
                   const currentResponse = feedbackResponses[feedbackKey];
-                  console.log(`Feedback ${index} (${feedbackKey}):`, {
+                  // console.log(`Feedback ${index} (${feedbackKey}):`, {
                     currentResponse,
                     allResponses: feedbackResponses,
                     feedbackStatus: game.FeedbackStatus?.[index],
@@ -1732,7 +1732,7 @@ function DetailView({
                           }}
                           onClick={async () => {
                             const newResponse = currentResponse === "Like" ? null : "Like";
-                            console.log("Like button clicked:", { feedbackKey, currentResponse, newResponse });
+                            // console.log("Like button clicked:", { feedbackKey, currentResponse, newResponse });
                             setFeedbackResponses(prev => ({
                               ...prev,
                               [feedbackKey]: newResponse
@@ -1750,7 +1750,7 @@ function DetailView({
                                 }),
                               });
                               const data = await res.json();
-                              console.log("Update response:", data);
+                              // console.log("Update response:", data);
                               if (!res.ok) {
                                 console.error("Failed to update feedback response:", data.message);
                               }
@@ -2057,9 +2057,9 @@ function DetailView({
           const gameChallenges = game.challenges || [];
           
           // Debug logging
-          console.log('Game challenges data:', gameChallenges);
+          // console.log('Game challenges data:', gameChallenges);
           gameChallenges.forEach((challenge, index) => {
-            console.log(`Challenge ${index}:`, {
+            // console.log(`Challenge ${index}:`, {
               status: challenge.status,
               earnableSSS: challenge.earnableSSS,
               sssEarned: challenge.sssEarned,
@@ -2128,7 +2128,7 @@ function DetailView({
                             // Make API call to update the challenge status in Airtable
                             try {
                               const newStatus = challenge.status === "Not Submitted" ? "Pending" : "Not Submitted";
-                              console.log('Making API call with:', {
+                              // console.log('Making API call with:', {
                                 token: token,
                                 challengeId: challenge.airtableId,
                                 status: newStatus,
@@ -2200,7 +2200,7 @@ function DetailView({
                             // Make API call to update the challenge status in Airtable
                             try {
                               const newStatus = challenge.status === "Not Submitted" ? "Pending" : "Not Submitted";
-                              console.log('Making API call with:', {
+                              // console.log('Making API call with:', {
                                 token: token,
                                 challengeId: challenge.airtableId,
                                 status: newStatus,
@@ -2548,7 +2548,7 @@ function DetailView({
                     onChange={(e) => {
                       const file =
                         (e.target.files && e.target.files[0]) || null;
-                      console.log("Build file selected:", file?.name);
+                      // console.log("Build file selected:", file?.name);
 
                       // Validate file extension
                       if (file && !file.name.toLowerCase().endsWith(".zip")) {
@@ -2567,7 +2567,7 @@ function DetailView({
                     type="button"
                     className="moments-attach-btn"
                     onClick={() => {
-                      console.log(
+                      // console.log(
                         "Build file button clicked, ref exists:",
                         !!buildFileInputRef.current,
                       );
@@ -2592,12 +2592,12 @@ function DetailView({
                   setIsPosting={setIsPosting}
                   setPostMessage={setPostMessage}
                   onUploadStateChange={(isUploading) => {
-                    console.log('Artlog upload state changed:', isUploading);
+                    // console.log('Artlog upload state changed:', isUploading);
                     setIsArtlogUploading(isUploading);
                     
                     // Also log the current state for debugging
-                    console.log('Current artlog upload state:', isUploading);
-                    console.log('Post button should be disabled:', isPosting || isUploading || isArtlogUploading);
+                    // console.log('Current artlog upload state:', isUploading);
+                    // console.log('Post button should be disabled:', isPosting || isUploading || isArtlogUploading);
                   }}
                 />
               ) : (
@@ -2610,7 +2610,7 @@ function DetailView({
                     style={{ display: "none" }}
                     onChange={async (e) => {
                       const f = (e.target.files && e.target.files[0]) || null;
-                      console.log("Moments file selected:", f?.name);
+                      // console.log("Moments file selected:", f?.name);
 
                       // Validate file type for moments
                       if (f) {
@@ -2643,7 +2643,7 @@ function DetailView({
                     type="button"
                     className="moments-attach-btn"
                     onClick={() => {
-                      console.log(
+                      // console.log(
                         "Moments file clicked, ref exists:",
                         !!momentsFileInputRef.current,
                       );
@@ -3051,7 +3051,7 @@ function DetailView({
                     badges={p.badges}
                     gamePageUrl={`https://shiba.hackclub.com/games/${SlackId}/${encodeURIComponent(game?.name || '')}`}
                     onPlayCreated={(play) => {
-                      console.log("Play created:", play);
+                      // console.log("Play created:", play);
                     }}
                     postType={p.postType}
                     timelapseVideoId={p.timelapseVideoId}

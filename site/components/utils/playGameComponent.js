@@ -25,11 +25,11 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
     const isCurrentlyActive = activeGameId === gameId;
     const wasActive = wasActiveRef.current;
     
-    console.log('🔄 Game reset check:', { gameId, activeGameId, isCurrentlyActive, wasActive, started });
+    // console.log('🔄 Game reset check:', { gameId, activeGameId, isCurrentlyActive, wasActive, started });
     
     // If this game was active but is no longer active, reset it
     if (wasActive && !isCurrentlyActive && started) {
-      console.log('🔄 Resetting game component:', gameId);
+      // console.log('🔄 Resetting game component:', gameId);
       setStarted(false);
       setAnimating(false);
     }
@@ -69,7 +69,7 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
         document.exitFullscreen();
       } else {
         iframeRef.current.requestFullscreen().catch((err) => {
-          console.log("Error attempting to enable fullscreen:", err);
+          // console.log("Error attempting to enable fullscreen:", err);
         });
       }
     }
@@ -140,12 +140,12 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
 
             // Create play record if token and gameName are provided
             if (token && gameName) {
-              console.log("🎮 PlayGameComponent: Creating play record...");
-              console.log("🎮 Token available:", !!token);
-              console.log("🎮 Game name:", gameName);
+              // console.log("🎮 PlayGameComponent: Creating play record...");
+              // console.log("🎮 Token available:", !!token);
+              // console.log("🎮 Game name:", gameName);
               try {
                 const requestBody = { token, gameName };
-                console.log(
+                // console.log(
                   "🎮 Request body:",
                   JSON.stringify(requestBody, null, 2),
                 );
@@ -155,11 +155,11 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(requestBody),
                 });
-                console.log("🎮 Response status:", res.status);
-                console.log("🎮 Response ok:", res.ok);
+                // console.log("🎮 Response status:", res.status);
+                // console.log("🎮 Response ok:", res.ok);
 
                 const data = await res.json().catch(() => ({}));
-                console.log("🎮 Response data:", JSON.stringify(data, null, 2));
+                // console.log("🎮 Response data:", JSON.stringify(data, null, 2));
 
                 if (res.ok && data?.ok && onPlayCreated) {
                   onPlayCreated(data.play);
@@ -168,11 +168,11 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
                 console.error("❌ Failed to create play record:", error);
               }
             } else {
-              console.log(
+              // console.log(
                 "🎮 PlayGameComponent: Skipping play record creation",
               );
-              console.log("🎮 Token available:", !!token);
-              console.log("🎮 Game name available:", !!gameName);
+              // console.log("🎮 Token available:", !!token);
+              // console.log("🎮 Game name available:", !!gameName);
             }
 
             setTimeout(() => {

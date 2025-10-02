@@ -4,8 +4,8 @@ import PurchaseModal from "./PurchaseModal";
 import useAudioManager from "./useAudioManager";
 
 export default function ShopComponent({ profile, token, setProfile }) {
-  console.log('ShopComponent received profile:', profile);
-  console.log('ShopComponent sssBalance:', profile?.sssBalance);
+  // console.log('ShopComponent received profile:', profile);
+  // console.log('ShopComponent sssBalance:', profile?.sssBalance);
   const { play: playSound, stopAll } = useAudioManager(["mysteryShopMusic.mp3"]);
   const [shopItems, setShopItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -7,7 +7,7 @@ const AIRTABLE_ACTIVITY_TABLE = 'User Activity';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
-  console.log('🧪 Testing Airtable connection...');
+  // console.log('🧪 Testing Airtable connection...');
   
   if (!AIRTABLE_API_KEY) {
     return res.status(500).json({ 
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     // Test 1: Check if we can access the base
-    console.log('📊 Testing base access...');
+    // console.log('📊 Testing base access...');
     const baseUrl = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}`;
     const baseResponse = await fetch(baseUrl, {
       headers: {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       }
     });
     
-    console.log('Base response status:', baseResponse.status);
+    // console.log('Base response status:', baseResponse.status);
     
     if (!baseResponse.ok) {
       const errorText = await baseResponse.text();
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     }
 
     // Test 2: Check if Users table exists
-    console.log('👥 Testing Users table access...');
+    // console.log('👥 Testing Users table access...');
     const usersUrl = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_USERS_TABLE)}?maxRecords=1`;
     const usersResponse = await fetch(usersUrl, {
       headers: {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       }
     });
     
-    console.log('Users table response status:', usersResponse.status);
+    // console.log('Users table response status:', usersResponse.status);
     
     if (!usersResponse.ok) {
       const errorText = await usersResponse.text();
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     }
 
     // Test 3: Check if User Activity table exists
-    console.log('📈 Testing User Activity table access...');
+    // console.log('📈 Testing User Activity table access...');
     const activityUrl = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_ACTIVITY_TABLE)}?maxRecords=1`;
     const activityResponse = await fetch(activityUrl, {
       headers: {
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       }
     });
     
-    console.log('User Activity table response status:', activityResponse.status);
+    // console.log('User Activity table response status:', activityResponse.status);
     
     if (!activityResponse.ok) {
       const errorText = await activityResponse.text();
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     }
 
     // Test 4: Try to create a test record
-    console.log('📝 Testing record creation...');
+    // console.log('📝 Testing record creation...');
     const testRecord = {
       fields: {
         'Activity Type': 'test',
@@ -102,7 +102,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(testRecord)
     });
 
-    console.log('Create record response status:', createResponse.status);
+    // console.log('Create record response status:', createResponse.status);
     
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
     }
 
     const createdRecord = await createResponse.json();
-    console.log('✅ Test record created:', createdRecord);
+    // console.log('✅ Test record created:', createdRecord);
 
     return res.status(200).json({
       success: true,

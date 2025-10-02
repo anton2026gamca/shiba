@@ -7,9 +7,9 @@ const AIRTABLE_RSVP_TABLE = process.env.AIRTABLE_RSVP_TABLE || 'RSVP';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
-  console.log('=== GetRSVPs API called ===');
-  console.log('Method:', req.method);
-  console.log('Body:', JSON.stringify(req.body, null, 2));
+  // console.log('=== GetRSVPs API called ===');
+  // console.log('Method:', req.method);
+  // console.log('Body:', JSON.stringify(req.body, null, 2));
   
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -21,42 +21,42 @@ export default async function handler(req, res) {
   }
 
   const { token } = req.body || {};
-  console.log('📝 Extracted token:', token ? `${token.substring(0, 10)}...` : 'undefined');
+  // console.log('📝 Extracted token:', token ? `${token.substring(0, 10)}...` : 'undefined');
   
   if (!token) {
     return res.status(400).json({ message: 'Missing required field: token' });
   }
 
   try {
-    console.log('🔍 Looking for user by token...');
+    // console.log('🔍 Looking for user by token...');
     // Find user by token
     const userRecord = await findUserByToken(token);
-    console.log('👤 User record found:', userRecord ? 'YES' : 'NO');
+    // console.log('👤 User record found:', userRecord ? 'YES' : 'NO');
     if (userRecord) {
-      console.log('👤 User ID:', userRecord.id);
-      console.log('👤 User fields:', Object.keys(userRecord.fields || {}));
+      // console.log('👤 User ID:', userRecord.id);
+      // console.log('👤 User fields:', Object.keys(userRecord.fields || {}));
     }
     if (!userRecord) {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    console.log('🎫 Looking for RSVPs for user...');
-    console.log('🎫 User RSVPs field:', JSON.stringify(userRecord.fields?.RSVPs, null, 2));
+    // console.log('🎫 Looking for RSVPs for user...');
+    // console.log('🎫 User RSVPs field:', JSON.stringify(userRecord.fields?.RSVPs, null, 2));
     
     // Check if RSVPs are linked directly to user record
     let rsvps = [];
     if (Array.isArray(userRecord.fields?.RSVPs) && userRecord.fields.RSVPs.length > 0) {
-      console.log('🎫 Found linked RSVPs in user record');
+      // console.log('🎫 Found linked RSVPs in user record');
       // Fetch the full RSVP records using the linked IDs
       rsvps = await fetchRSVPRecords(userRecord.fields.RSVPs);
     } else {
-      console.log('🎫 No linked RSVPs, trying separate table...');
+      // console.log('🎫 No linked RSVPs, trying separate table...');
       // Get all RSVPs for this user from separate table
       rsvps = await getUserRSVPs(userRecord.id);
     }
     
-    console.log('🎫 RSVPs found:', rsvps.length);
-    console.log('🎫 RSVPs data:', JSON.stringify(rsvps, null, 2));
+    // console.log('🎫 RSVPs found:', rsvps.length);
+    // console.log('🎫 RSVPs data:', JSON.stringify(rsvps, null, 2));
 
     return res.status(200).json({ ok: true, rsvps });
   } catch (error) {
@@ -101,7 +101,7 @@ async function findUserByToken(token) {
 }
 
 async function fetchRSVPRecords(rsvpIds) {
-  console.log('🎫 fetchRSVPRecords called with IDs:', rsvpIds);
+  // console.log('🎫 fetchRSVPRecords called with IDs:', rsvpIds);
   
   try {
     // Fetch each RSVP record individually
@@ -109,7 +109,7 @@ async function fetchRSVPRecords(rsvpIds) {
       const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_RSVP_TABLE)}/${encodeURIComponent(rsvpId)}`, {
         method: 'GET',
       });
-      console.log('🎫 RSVP record data for', rsvpId, ':', JSON.stringify(data, null, 2));
+      // console.log('🎫 RSVP record data for', rsvpId, ':', JSON.stringify(data, null, 2));
       return {
         rsvpId: data.fields?.RSVPId || '',
         event: data.fields?.Event || '',
@@ -118,42 +118,42 @@ async function fetchRSVPRecords(rsvpIds) {
     });
     
     const rsvps = await Promise.all(rsvpPromises);
-    console.log('🎫 Fetched RSVP records:', JSON.stringify(rsvps, null, 2));
+    // console.log('🎫 Fetched RSVP records:', JSON.stringify(rsvps, null, 2));
     return rsvps;
   } catch (error) {
-    console.log('❌ Error in fetchRSVPRecords:', error.message);
+    // console.log('❌ Error in fetchRSVPRecords:', error.message);
     return [];
   }
 }
 
 async function getUserRSVPs(userId) {
-  console.log('🎫 getUserRSVPs called with userId:', userId);
+  // console.log('🎫 getUserRSVPs called with userId:', userId);
   // SECURITY FIX: Escape the userId to prevent formula injection
   const userIdEscaped = safeEscapeFormulaString(userId);
   const formula = `{User} = "${userIdEscaped}"`;
-  console.log('🎫 Airtable formula:', formula);
+  // console.log('🎫 Airtable formula:', formula);
   const params = new URLSearchParams({
     filterByFormula: formula,
   });
-  console.log('🎫 Airtable URL params:', params.toString());
+  // console.log('🎫 Airtable URL params:', params.toString());
 
   try {
     const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_RSVP_TABLE)}?${params.toString()}`, {
       method: 'GET',
     });
-    console.log('🎫 Airtable response records count:', data.records ? data.records.length : 0);
-    console.log('🎫 Airtable response data:', JSON.stringify(data, null, 2));
+    // console.log('🎫 Airtable response records count:', data.records ? data.records.length : 0);
+    // console.log('🎫 Airtable response data:', JSON.stringify(data, null, 2));
     
     const rsvps = data.records ? data.records.map(record => ({
       rsvpId: record.fields?.RSVPId || '',
       event: record.fields?.Event || '',
       recordId: record.id
     })) : [];
-    console.log('🎫 Processed RSVPs:', JSON.stringify(rsvps, null, 2));
+    // console.log('🎫 Processed RSVPs:', JSON.stringify(rsvps, null, 2));
     
     return rsvps;
   } catch (error) {
-    console.log('❌ Error in getUserRSVPs:', error.message);
+    // console.log('❌ Error in getUserRSVPs:', error.message);
     return [];
   }
 }

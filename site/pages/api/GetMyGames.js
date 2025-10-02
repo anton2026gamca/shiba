@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ message: 'Server configuration error' });
   }
   
-  console.log('[GetMyGames] API Key present, proceeding...');
-  console.log('[GetMyGames] Table names:', {
+  // console.log('[GetMyGames] API Key present, proceeding...');
+  // console.log('[GetMyGames] Table names:', {
     USERS: AIRTABLE_USERS_TABLE,
     GAMES: AIRTABLE_GAMES_TABLE,
     POSTS: AIRTABLE_POSTS_TABLE,
@@ -31,27 +31,27 @@ export default async function handler(req, res) {
     const { token } = req.body || {};
     if (!token) return res.status(200).json([]);
 
-    console.log(`[GetMyGames] Fetching games for token: ${token}`);
+    // console.log(`[GetMyGames] Fetching games for token: ${token}`);
     const gameRecords = await fetchAllGamesForOwner(token);
-    console.log(`[GetMyGames] Raw game records:`, gameRecords);
-    console.log(`[GetMyGames] Number of games found: ${gameRecords?.length || 0}`);
+    // console.log(`[GetMyGames] Raw game records:`, gameRecords);
+    // console.log(`[GetMyGames] Number of games found: ${gameRecords?.length || 0}`);
     
     // Debug: Show all available fields for games with feedback
     gameRecords.forEach((record, index) => {
       if (record.fields?.Feedback && Array.isArray(record.fields.Feedback) && record.fields.Feedback.length > 0) {
-        console.log(`[GetMyGames] Game ${index} with feedback - all fields:`, Object.keys(record.fields));
+        // console.log(`[GetMyGames] Game ${index} with feedback - all fields:`, Object.keys(record.fields));
       }
     });
     
     if (!gameRecords || gameRecords.length === 0) {
-      console.log(`[GetMyGames] No games found, returning empty array`);
+      // console.log(`[GetMyGames] No games found, returning empty array`);
       return res.status(200).json([]);
     }
 
     // Fetch challenges for the user
-    console.log(`[GetMyGames] Fetching challenges for token: ${token}`);
+    // console.log(`[GetMyGames] Fetching challenges for token: ${token}`);
     const allChallenges = await fetchChallengesForUser(token);
-    console.log(`[GetMyGames] Number of challenges found: ${allChallenges?.length || 0}`);
+    // console.log(`[GetMyGames] Number of challenges found: ${allChallenges?.length || 0}`);
 
 
     
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       
       // Debug feedback data
       if (feedbacks.length > 0) {
-        console.log(`[GetMyGames] Game "${gameName}" feedback debug:`, {
+        // console.log(`[GetMyGames] Game "${gameName}" feedback debug:`, {
           rawFeedbackStatuses: feedbackStatusesRaw,
           rawFeedbackMessages: feedbackMessagesRaw,
           rawFeedbacks: feedbacksRaw,
@@ -287,7 +287,7 @@ function normalizeLinkedIds(value) {
 
 async function fetchAllGamesForOwner(ownerToken) {
   // First, let's see what games exist and what the ownerToken field looks like
-  console.log(`[GetMyGames] Attempting to find games for token: ${ownerToken}`);
+  // console.log(`[GetMyGames] Attempting to find games for token: ${ownerToken}`);
   
   // Try the direct filter first
   const ownerTokenEscaped = safeEscapeFormulaString(ownerToken);
@@ -296,28 +296,28 @@ async function fetchAllGamesForOwner(ownerToken) {
     pageSize: '100',
   });
 
-  console.log(`[GetMyGames] Airtable query params:`, params.toString());
+  // console.log(`[GetMyGames] Airtable query params:`, params.toString());
   
   const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_GAMES_TABLE)}?${params.toString()}`, {
     method: 'GET',
   });
   
-  console.log(`[GetMyGames] Airtable response:`, data);
+  // console.log(`[GetMyGames] Airtable response:`, data);
   
   if (data.records && data.records.length > 0) {
-    console.log(`[GetMyGames] Found ${data.records.length} games with direct filter`);
+    // console.log(`[GetMyGames] Found ${data.records.length} games with direct filter`);
     return data.records;
   }
   
   // If no games found with direct filter, the token might not exist in any games
-  console.log(`[GetMyGames] No games found with direct filter for token: ${ownerToken}`);
-  console.log(`[GetMyGames] This token might not be associated with any games yet`);
+  // console.log(`[GetMyGames] No games found with direct filter for token: ${ownerToken}`);
+  // console.log(`[GetMyGames] This token might not be associated with any games yet`);
   
   return [];
 }
 
 async function fetchPostsForGame(gameId) {
-  console.log('[GetMyGames] fetchPostsForGame gameId:', gameId);
+  // console.log('[GetMyGames] fetchPostsForGame gameId:', gameId);
   
   // Try the same approach as the working GetPostsForGame.js with pagination
   try {
@@ -342,14 +342,14 @@ async function fetchPostsForGame(gameId) {
       allPosts = allPosts.concat(records);
       offset = page.offset;
       
-      console.log(`[GetMyGames] Fetched ${records.length} posts in this batch, total so far: ${allPosts.length}`);
+      // console.log(`[GetMyGames] Fetched ${records.length} posts in this batch, total so far: ${allPosts.length}`);
       
     } while (offset);
     
-    console.log(`[GetMyGames] Server filter found ${allPosts.length} total posts for game ${gameId}`);
+    // console.log(`[GetMyGames] Server filter found ${allPosts.length} total posts for game ${gameId}`);
     return allPosts;
   } catch (error) {
-    console.log(`[GetMyGames] Server filter failed, trying fallback approach:`, error.message);
+    // console.log(`[GetMyGames] Server filter failed, trying fallback approach:`, error.message);
     
     // Fallback: fetch all posts and filter client-side
     try {
@@ -383,7 +383,7 @@ async function fetchPostsForGame(gameId) {
         
       } while (offset);
       
-      console.log(`[GetMyGames] Fallback found ${allPosts.length} posts for game ${gameId}`);
+      // console.log(`[GetMyGames] Fallback found ${allPosts.length} posts for game ${gameId}`);
       return allPosts;
     } catch (fallbackError) {
       console.error(`[GetMyGames] Both approaches failed:`, fallbackError);
@@ -393,23 +393,23 @@ async function fetchPostsForGame(gameId) {
 }
 
 async function fetchChallengesForUser(userToken) {
-  console.log('[GetMyGames] fetchChallengesForUser userToken:', userToken);
+  // console.log('[GetMyGames] fetchChallengesForUser userToken:', userToken);
   
   try {
     // First find the user by token to get their email
     const user = await findUserByToken(userToken);
     if (!user) {
-      console.log('[GetMyGames] No user found for token');
+      // console.log('[GetMyGames] No user found for token');
       return [];
     }
     
     const userEmail = user.fields?.Email;
     if (!userEmail) {
-      console.log('[GetMyGames] No email found for user');
+      // console.log('[GetMyGames] No email found for user');
       return [];
     }
     
-    console.log('[GetMyGames] Looking for challenges for email:', userEmail);
+    // console.log('[GetMyGames] Looking for challenges for email:', userEmail);
     
     // Fetch challenges where recipientEmail matches the user's email
     const params = new URLSearchParams({
@@ -417,16 +417,16 @@ async function fetchChallengesForUser(userToken) {
       pageSize: '100',
     });
 
-    console.log('[GetMyGames] Challenges query params:', params.toString());
+    // console.log('[GetMyGames] Challenges query params:', params.toString());
     
     const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_CHALLENGES_TABLE)}?${params.toString()}`, {
       method: 'GET',
     });
     
-    console.log('[GetMyGames] Challenges response:', data);
+    // console.log('[GetMyGames] Challenges response:', data);
     
     if (data.records && data.records.length > 0) {
-      console.log(`[GetMyGames] Found ${data.records.length} challenges`);
+      // console.log(`[GetMyGames] Found ${data.records.length} challenges`);
       
       // Transform challenges to match the expected format
       const transformedChallenges = data.records.map(rec => {
@@ -442,14 +442,14 @@ async function fetchChallengesForUser(userToken) {
           fromPlaytest: fields.FromPlaytest || [],
           recipientEmail: fields.recipientEmail || ''
         };
-        console.log(`[GetMyGames] Challenge object created:`, challengeObj);
+        // console.log(`[GetMyGames] Challenge object created:`, challengeObj);
         return challengeObj;
       });
       
       return transformedChallenges;
     }
     
-    console.log('[GetMyGames] No challenges found for email:', userEmail);
+    // console.log('[GetMyGames] No challenges found for email:', userEmail);
     return [];
     
   } catch (error) {

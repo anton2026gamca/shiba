@@ -100,28 +100,28 @@ export default async function handler(req, res) {
     });
 
     // Check if there's already a record for this game in the "Active YSWS Record" table
-    console.log(`Looking for existing active record for game: ${gameId}`);
+    // console.log(`Looking for existing active record for game: ${gameId}`);
     const existingActiveRecord = await findActiveRecordByGameId(gameId);
     
     let activeResult;
     if (existingActiveRecord) {
-      console.log(`Updating existing active record: ${existingActiveRecord.id}`);
+      // console.log(`Updating existing active record: ${existingActiveRecord.id}`);
       // Update existing record
       const updatePayload = { fields: activeFields };
       activeResult = await airtableRequest(`${encodeURIComponent(AIRTABLE_YSWS_ACTIVE_TABLE)}/${encodeURIComponent(existingActiveRecord.id)}`, {
         method: 'PATCH',
         body: JSON.stringify(updatePayload),
       });
-      console.log(`Update result:`, activeResult);
+      // console.log(`Update result:`, activeResult);
     } else {
-      console.log(`Creating new active record for game: ${gameId}`);
+      // console.log(`Creating new active record for game: ${gameId}`);
       // Create new record
       const createPayload = { records: [{ fields: activeFields }] };
       activeResult = await airtableRequest(encodeURIComponent(AIRTABLE_YSWS_ACTIVE_TABLE), {
         method: 'POST',
         body: JSON.stringify(createPayload),
       });
-      console.log(`Create result:`, activeResult);
+      // console.log(`Create result:`, activeResult);
     }
 
     if (historyCreated?.records?.[0] && activeResult) {
@@ -187,7 +187,7 @@ async function findGameById(gameId) {
 
 async function findActiveRecordByGameId(gameId) {
   try {
-    console.log(`Searching for active record with game ID: ${gameId}`);
+    // console.log(`Searching for active record with game ID: ${gameId}`);
     
     // Get all records from the Active YSWS Record table using pagination
     let allRecords = [];
@@ -213,14 +213,14 @@ async function findActiveRecordByGameId(gameId) {
       offset = data.offset; // Get next page offset
     } while (offset);
     
-    console.log(`Found ${allRecords.length} total active records`);
+    // console.log(`Found ${allRecords.length} total active records`);
     
     // Check if we found a record
     if (allRecords.length > 0) {
       // Find the exact match by checking each record's Game field
       const exactMatch = allRecords.find(record => {
         const gameField = record.fields?.Game;
-        console.log(`Checking record ${record.id}, Game field:`, gameField);
+        // console.log(`Checking record ${record.id}, Game field:`, gameField);
         
         if (Array.isArray(gameField)) {
           // Game field is an array of linked record IDs
@@ -233,12 +233,12 @@ async function findActiveRecordByGameId(gameId) {
       });
       
       if (exactMatch) {
-        console.log(`Found existing active record for game ${gameId}: ${exactMatch.id}`);
+        // console.log(`Found existing active record for game ${gameId}: ${exactMatch.id}`);
         return exactMatch;
       }
     }
 
-    console.log(`No existing active record found for game ${gameId}, will create new one`);
+    // console.log(`No existing active record found for game ${gameId}, will create new one`);
     return null;
   } catch (error) {
     console.error('Error finding active record by game ID:', error);

@@ -46,7 +46,7 @@ export function useActivityTracker(component, token, options = {}) {
       });
 
       if (response.ok) {
-        console.log(`✅ Activity logged: ${timeSpent}s in ${component}`);
+        // console.log(`✅ Activity logged: ${timeSpent}s in ${component}`);
       } else {
         console.error('❌ Failed to log activity:', await response.text());
       }
@@ -59,7 +59,7 @@ export function useActivityTracker(component, token, options = {}) {
   useEffect(() => {
     if (!isActive) {
       const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log('🎯 Starting session:', newSessionId, token ? '(authenticated)' : '(anonymous)');
+      // console.log('🎯 Starting session:', newSessionId, token ? '(authenticated)' : '(anonymous)');
       
       setSessionId(newSessionId);
       setIsActive(true);
@@ -134,7 +134,7 @@ export function useActivityTracker(component, token, options = {}) {
   useEffect(() => {
     if (!isActive) return;
 
-    console.log('💓 Setting up activity-based heartbeat for session:', sessionId);
+    // console.log('💓 Setting up activity-based heartbeat for session:', sessionId);
     
     heartbeatRef.current = setInterval(() => {
       if (isActive && sessionStartRef.current) {
@@ -144,7 +144,7 @@ export function useActivityTracker(component, token, options = {}) {
         
         // Only log heartbeat if there's been activity in the last 15 seconds
         if (timeSinceLastActivity < 15000) {
-          console.log(`💓 Logging heartbeat: ${sessionTime}s total (activity within 15s)`);
+          // console.log(`💓 Logging heartbeat: ${sessionTime}s total (activity within 15s)`);
           
           logActivity('heartbeat', 15, {
             sessionId,
@@ -152,7 +152,7 @@ export function useActivityTracker(component, token, options = {}) {
             timeSinceLastActivity: Math.floor(timeSinceLastActivity / 1000)
           });
         } else {
-          console.log(`💓 Skipping heartbeat: no activity for ${Math.floor(timeSinceLastActivity / 1000)}s`);
+          // console.log(`💓 Skipping heartbeat: no activity for ${Math.floor(timeSinceLastActivity / 1000)}s`);
         }
       }
     }, 15000); // Every 15 seconds
@@ -166,7 +166,7 @@ export function useActivityTracker(component, token, options = {}) {
 
   // Manual activity logging
   const logSpecificActivity = useCallback((activityType, metadata = {}) => {
-    console.log(`🎮 Logging specific activity: ${activityType}`, metadata);
+    // console.log(`🎮 Logging specific activity: ${activityType}`, metadata);
     logActivity(activityType, 0, metadata);
   }, [logActivity]);
 
@@ -175,7 +175,7 @@ export function useActivityTracker(component, token, options = {}) {
   
   const logGamePlayStart = useCallback((gameData = {}) => {
     if (!isGamePlaying) {
-      console.log('🎮 Game play started');
+      // console.log('🎮 Game play started');
       setIsGamePlaying(true);
       logActivity('game_play_start', 0, {
         ...gameData,
@@ -186,7 +186,7 @@ export function useActivityTracker(component, token, options = {}) {
 
   const logGamePlayStop = useCallback((gameData = {}) => {
     if (isGamePlaying) {
-      console.log('🛑 Game play stopped');
+      // console.log('🛑 Game play stopped');
       setIsGamePlaying(false);
       logActivity('game_play_stop', 0, {
         ...gameData,

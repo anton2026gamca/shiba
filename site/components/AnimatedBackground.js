@@ -20,7 +20,7 @@ const AnimatedBackground = ({
     // Randomly select one image on component mount (page refresh)
     const randomIndex = Math.floor(Math.random() * jumpyImages.length);
     const randomImage = jumpyImages[randomIndex];
-    console.log('Selected random image:', randomImage); // Debug log
+    // console.log('Selected random image:', randomImage); // Debug log
     setSelectedImage(randomImage);
   }, [enabled]);
 

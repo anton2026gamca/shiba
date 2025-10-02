@@ -424,7 +424,7 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                     token={token}
                     badges={Array.isArray(post.Badges) ? post.Badges : []}
                     onPlayCreated={(play) => {
-                      console.log('Play created:', play);
+                      // console.log('Play created:', play);
                     }}
                     postType={post.postType}
                     timelapseVideoId={post.timelapseVideoId}
@@ -915,10 +915,10 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                   thumbnailUrl={playtestGame.gameThumbnail}
                   token={token}
                   onPlayCreated={(play) => {
-                    console.log('Play created:', play);
+                    // console.log('Play created:', play);
                   }}
                   onGameStart={() => {
-                    console.log('Game started!');
+                    // console.log('Game started!');
                     // Start timer when game actually starts
                     setGameStartTime(Date.now());
                   }}

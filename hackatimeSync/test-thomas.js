@@ -2,25 +2,20 @@ require('dotenv').config();
 
 // Test script for thomas@serenidad.app user only
 async function testThomasUser() {
-  console.log('🧪 Testing spans and post hours functionality for thomas@serenidad.app');
   
   // First, let's find the Slack ID for thomas@serenidad.app
   const email = 'losdos2341@gmail.com';
   const slackId = await findSlackIdByEmail(email);
   
   if (!slackId) {
-    console.log('❌ Could not find Slack ID for thomas@serenidad.app');
     return;
   }
   
-  console.log(`✅ Found Slack ID: ${slackId}`);
   
   // Get all games for this user
   const games = await fetchGamesForUser(slackId);
-  console.log(`📊 Found ${games.length} games for ${email}`);
   
   if (games.length === 0) {
-    console.log('❌ No games found for this user');
     return;
   }
   
@@ -29,14 +24,10 @@ async function testThomasUser() {
   const userEmail = user?.fields?.Email;
   
   // Fetch Hackatime data for this user
-  console.log('🔄 Fetching Hackatime data...');
   const hackatimeData = await fetchHackatimeData(slackId, userEmail);
-  console.log(`📈 Found ${hackatimeData.projects.length} projects in Hackatime`);
   
   // Fetch spans data
-  console.log('🔄 Fetching spans data...');
   const spansData = await fetchHackatimeSpans(slackId, userEmail);
-  console.log(`⏱️ Found spans for ${Object.keys(spansData).length} projects`);
   
   // Process each game
   for (let i = 0; i < games.length; i++) {
@@ -44,22 +35,20 @@ async function testThomasUser() {
     const gameName = game.fields?.Name || 'Unknown Game';
     const projects = game.fields?.['Hackatime Projects'];
     
-    console.log(`\n🎮 Processing game ${i + 1}/${games.length}: ${gameName}`);
-    console.log(`📋 Projects: ${projects}`);
     
     if (!projects) {
-      console.log('⚠️ No Hackatime projects found, skipping...');
+      // console.log('⚠️ No Hackatime projects found, skipping...');
       continue;
     }
     
     // Calculate total seconds for this game
     const totalSeconds = calculateProjectSeconds(hackatimeData, projects);
-    console.log(`⏱️ Total seconds: ${totalSeconds}`);
+    // console.log(`⏱️ Total seconds: ${totalSeconds}`);
     
     // Update game's HackatimeSeconds
     try {
       await updateGameHackatimeSeconds(game.id, totalSeconds);
-      console.log(`✅ Updated game HackatimeSeconds`);
+      // console.log(`✅ Updated game HackatimeSeconds`);
     } catch (error) {
       console.error(`❌ Failed to update game:`, error.message);
     }
@@ -67,16 +56,16 @@ async function testThomasUser() {
     // Process posts for this game
     try {
       await processGamePosts(game, spansData, projects);
-      console.log(`✅ Processed posts for game`);
+      // console.log(`✅ Processed posts for game`);
     } catch (error) {
       console.error(`❌ Failed to process posts:`, error.message);
     }
   }
   
-  console.log('\n🎉 Test completed!');
+  // console.log('\n🎉 Test completed!');
   
   // Test the new daysActive functionality
-  console.log('\n🧪 Testing daysActive functionality...');
+  // console.log('\n🧪 Testing daysActive functionality...');
   await testDaysActiveFunctionality(slackId);
 }
 
@@ -149,7 +138,7 @@ async function fetchGamesForUser(slackId) {
 async function fetchHackatimeDataByEmail(email) {
   if (!email) throw new Error('Missing email');
   
-  console.log(`Looking up Hackatime user by email: ${email}`);
+  // console.log(`Looking up Hackatime user by email: ${email}`);
   const lookupResponse = await fetch(`https://hackatime.hackclub.com/api/v1/users/lookup_email/${encodeURIComponent(email)}`, {
     headers: {
       "Rack-Attack-Bypass": process.env.HACKATIME_RATE_LIMIT_BYPASS || '',
@@ -169,7 +158,7 @@ async function fetchHackatimeDataByEmail(email) {
     throw new Error('User not found with that email');
   }
   
-  console.log(`Found Hackatime user ID: ${hackatimeUserId}`);
+  // console.log(`Found Hackatime user ID: ${hackatimeUserId}`);
   return hackatimeUserId;
 }
 
@@ -216,20 +205,20 @@ async function fetchHackatimeData(slackId, email = null) {
   // Try slackId first if provided
   if (slackId) {
     try {
-      console.log(`Trying slackId method for: ${slackId}`);
+      // console.log(`Trying slackId method for: ${slackId}`);
       hackatimeUserId = slackId;
       const result = await fetchHackatimeStats(hackatimeUserId);
       
       // If we got projects from slackId, return them
       if (result.projects.length > 0) {
-        console.log(`Found ${result.projects.length} projects using slackId method`);
+        // console.log(`Found ${result.projects.length} projects using slackId method`);
         return { ...result, method, fallbackUsed };
       } else {
-        console.log('No projects found with slackId, falling back to email method');
+        // console.log('No projects found with slackId, falling back to email method');
         fallbackUsed = true;
       }
     } catch (error) {
-      console.log(`slackId method failed, falling back to email method: ${error.message}`);
+      // console.log(`slackId method failed, falling back to email method: ${error.message}`);
       fallbackUsed = true;
     }
   }
@@ -268,7 +257,7 @@ async function fetchHackatimeSpans(slackId, email = null) {
     
     const url = `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(slackId)}/heartbeats/spans?start_date=${start_date}&project=${encodeURIComponent(project.name)}`;
     
-    console.log(`  📊 Fetching spans for project "${project.name}"...`);
+    // console.log(`  📊 Fetching spans for project "${project.name}"...`);
     const headers = { Accept: 'application/json' };
     if (process.env.RACK_ATTACK_BYPASS) {
       headers['Rack-Attack-Bypass'] = process.env.RACK_ATTACK_BYPASS;
@@ -278,12 +267,12 @@ async function fetchHackatimeSpans(slackId, email = null) {
       const response = await fetch(url, { headers });
       
       if (response.status === 429) {
-        console.log(`  ⚠️ Rate limited for project "${project.name}", skipping...`);
+        // console.log(`  ⚠️ Rate limited for project "${project.name}", skipping...`);
         continue;
       }
       
       if (!response.ok) {
-        console.log(`  ❌ Failed to fetch spans for project "${project.name}": ${response.status}`);
+        // console.log(`  ❌ Failed to fetch spans for project "${project.name}": ${response.status}`);
         continue;
       }
       
@@ -291,7 +280,7 @@ async function fetchHackatimeSpans(slackId, email = null) {
       const spans = Array.isArray(data?.spans) ? data.spans : [];
       allSpans[project.name] = spans;
       
-      console.log(`  ✅ Found ${spans.length} spans for "${project.name}"`);
+      // console.log(`  ✅ Found ${spans.length} spans for "${project.name}"`);
       
       // Small delay between project requests
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -325,9 +314,9 @@ function calculateProjectSeconds(hackatimeData, gameProjectsField) {
     
     if (matchingProject) {
       totalSeconds += matchingProject.total_seconds || 0;
-      console.log(`    📊 Project "${projectName}": ${matchingProject.total_seconds}s`);
+      // console.log(`    📊 Project "${projectName}": ${matchingProject.total_seconds}s`);
     } else {
-      console.log(`    ⚠️ Project "${projectName}": NOT FOUND`);
+      // console.log(`    ⚠️ Project "${projectName}": NOT FOUND`);
     }
   }
   
@@ -427,13 +416,13 @@ async function processGamePosts(game, spansData, gameProjects) {
     : (typeof gameProjects === 'string' ? gameProjects.split(',').map(p => p.trim()) : []);
   
   if (projectNames.length === 0) {
-    console.log('    ⚠️ No projects found, skipping post processing');
+    // console.log('    ⚠️ No projects found, skipping post processing');
     return;
   }
   
   // Fetch all posts for this game
   const posts = await fetchPostsForGame(gameId);
-  console.log(`    📝 Found ${posts.length} posts for game ${gameName}`);
+  // console.log(`    📝 Found ${posts.length} posts for game ${gameName}`);
   
   if (posts.length === 0) {
     return;
@@ -443,13 +432,13 @@ async function processGamePosts(game, spansData, gameProjects) {
   const postsToProcess = posts.filter(post => {
     const timeSpentOnAsset = post.fields?.['TimeSpentOnAsset'];
     if (timeSpentOnAsset !== null && timeSpentOnAsset !== undefined && timeSpentOnAsset !== '') {
-      console.log(`    ⏭️ Skipping post ${post.id} - TimeSpentOnAsset already populated: ${timeSpentOnAsset}`);
+      // console.log(`    ⏭️ Skipping post ${post.id} - TimeSpentOnAsset already populated: ${timeSpentOnAsset}`);
       return false;
     }
     return true;
   });
   
-  console.log(`    🔄 Processing ${postsToProcess.length} posts (${posts.length - postsToProcess.length} skipped due to existing TimeSpentOnAsset)`);
+  // console.log(`    🔄 Processing ${postsToProcess.length} posts (${posts.length - postsToProcess.length} skipped due to existing TimeSpentOnAsset)`);
   
   if (postsToProcess.length === 0) {
     return;
@@ -484,7 +473,7 @@ async function processGamePosts(game, spansData, gameProjects) {
     // Update the post with calculated hours
     try {
       await updatePostHoursSpent(postId, hoursSpent);
-      console.log(`    ✅ Updated post ${i + 1}/${postsToProcess.length}: ${hoursSpent.toFixed(2)} hours`);
+      // console.log(`    ✅ Updated post ${i + 1}/${postsToProcess.length}: ${hoursSpent.toFixed(2)} hours`);
     } catch (error) {
       console.error(`    ❌ Failed to update post ${postId}:`, error.message);
     }
@@ -579,7 +568,7 @@ async function updateUserDaysActive(userId, newDaysActiveString) {
 
 // Test function for daysActive functionality
 async function testDaysActiveFunctionality(slackId) {
-  console.log(`Testing daysActive formatting for Slack ID: ${slackId}`);
+  // console.log(`Testing daysActive formatting for Slack ID: ${slackId}`);
   
   try {
     // Get user's email for fallback
@@ -588,40 +577,39 @@ async function testDaysActiveFunctionality(slackId) {
     
     // Fetch Hackatime data
     const hackatimeData = await fetchHackatimeData(slackId, userEmail);
-    console.log(`📊 Found ${hackatimeData.projects.length} projects in Hackatime`);
+    // console.log(`📊 Found ${hackatimeData.projects.length} projects in Hackatime`);
     
     // Fetch spans data
     const spansData = await fetchHackatimeSpans(slackId, userEmail);
-    console.log(`⏱️ Found spans for ${Object.keys(spansData).length} projects`);
     
     // Get user's games to get Shiba project names
     const userGames = await fetchGamesForUser(slackId);
     
     // Format the daysActive string (Shiba projects only)
     const daysActiveString = formatDaysActiveString(hackatimeData, spansData, userGames);
-    console.log(`📅 Formatted daysActive string: "${daysActiveString}"`);
+    // console.log(`📅 Formatted daysActive string: "${daysActiveString}"`);
     
     // Find the user in Airtable
     const user = await findUserBySlackId(slackId);
     if (user) {
       const currentDaysActive = user.fields?.['daysActive'] || '';
-      console.log(`📋 Current daysActive in Airtable: "${currentDaysActive}"`);
+      // console.log(`📋 Current daysActive in Airtable: "${currentDaysActive}"`);
       
       if (daysActiveString !== currentDaysActive) {
-        console.log(`🔄 daysActive would be updated (different from current value)`);
+        // console.log(`🔄 daysActive would be updated (different from current value)`);
         
         // Actually update the user to test the functionality
         try {
           await updateUserDaysActive(user.id, daysActiveString);
-          console.log(`✅ Successfully updated user daysActive in Airtable`);
+          // console.log(`✅ Successfully updated user daysActive in Airtable`);
         } catch (error) {
           console.error(`❌ Failed to update user daysActive:`, error.message);
         }
       } else {
-        console.log(`✅ daysActive unchanged (same as current value)`);
+        // console.log(`✅ daysActive unchanged (same as current value)`);
       }
     } else {
-      console.log(`❌ User not found in Airtable`);
+      // console.log(`❌ User not found in Airtable`);
     }
     
   } catch (error) {

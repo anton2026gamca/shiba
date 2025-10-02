@@ -13,7 +13,7 @@ const LOOPS_API_BASE = 'https://app.loops.so/api/v1';
 
 export default async function handler(req, res) {
   const startTime = Date.now();
-  console.log(`[${new Date().toISOString()}] newLogin: Starting request`);
+  // console.log(`[${new Date().toISOString()}] newLogin: Starting request`);
   
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   }
 
   const normalizedEmail = normalizeEmail(email);
-  console.log(`[${new Date().toISOString()}] newLogin: Processing ${normalizedEmail}`);
+  // console.log(`[${new Date().toISOString()}] newLogin: Processing ${normalizedEmail}`);
 
   // Rate limiting check
   const rateLimitKey = `login:${normalizedEmail}`;
@@ -44,11 +44,11 @@ export default async function handler(req, res) {
     const token = generateAlphanumericToken(120);
     
     // Find or create user first
-    console.log(`[${new Date().toISOString()}] newLogin: Finding/creating user`);
+    // console.log(`[${new Date().toISOString()}] newLogin: Finding/creating user`);
     const userRecord = await findOrCreateUser(normalizedEmail);
     
     // Use parallel operations for write operations
-    console.log(`[${new Date().toISOString()}] newLogin: Starting parallel write operations`);
+    // console.log(`[${new Date().toISOString()}] newLogin: Starting parallel write operations`);
     
     // Do OTP creation and token update in parallel
     const [otpCreated, tokenUpdated] = await Promise.all([
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       updateUserToken(userRecord.id, token)
     ]);
     
-    console.log(`[${new Date().toISOString()}] newLogin: Write operations completed`);
+    // console.log(`[${new Date().toISOString()}] newLogin: Write operations completed`);
     
     // Send email (non-blocking)
     sendOtpEmailViaLoops(normalizedEmail, otp, token).catch(err => {
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     });
     
     const totalTime = Date.now() - startTime;
-    console.log(`[${new Date().toISOString()}] newLogin: Completed in ${totalTime}ms`);
+    // console.log(`[${new Date().toISOString()}] newLogin: Completed in ${totalTime}ms`);
     
     return res.status(200).json({ message: 'OTP generated and sent.' });
   } catch (error) {
@@ -97,7 +97,7 @@ async function findOrCreateUser(email) {
     const existingUser = await findUserByEmail(email);
     if (existingUser) return existingUser;
   } catch (error) {
-    console.log('User lookup failed, will create new user');
+    // console.log('User lookup failed, will create new user');
   }
   
   // Create new user if not found
@@ -185,8 +185,8 @@ async function airtableBatchRequest(operations) {
     }))
   };
   
-  console.log(`[${new Date().toISOString()}] airtableBatchRequest: URL: ${url}`);
-  console.log(`[${new Date().toISOString()}] airtableBatchRequest: Payload:`, JSON.stringify(payload, null, 2));
+  // console.log(`[${new Date().toISOString()}] airtableBatchRequest: URL: ${url}`);
+  // console.log(`[${new Date().toISOString()}] airtableBatchRequest: Payload:`, JSON.stringify(payload, null, 2));
   
   const response = await fetch(url, {
     method: 'POST',
@@ -204,7 +204,7 @@ async function airtableBatchRequest(operations) {
   }
   
   const result = await response.json();
-  console.log(`[${new Date().toISOString()}] airtableBatchRequest: Success:`, JSON.stringify(result, null, 2));
+  // console.log(`[${new Date().toISOString()}] airtableBatchRequest: Success:`, JSON.stringify(result, null, 2));
   return result;
 }
 

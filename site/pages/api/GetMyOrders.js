@@ -29,12 +29,12 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Invalid token' });
     }
 
-    console.log('Found user:', user.id);
+    // console.log('Found user:', user.id);
 
     // Get orders for this user
     const orders = await getOrdersForUser(user.id);
     
-    console.log('Found orders:', orders);
+    // console.log('Found orders:', orders);
     
     return res.status(200).json({ ok: true, orders });
   } catch (error) {
@@ -82,7 +82,7 @@ async function getOrdersForUser(userId) {
   
   // Method 1: Try direct comparison with the linked record
   let filterFormula = `{Spent By} = "${userEscaped}"`;
-  console.log('Trying filter formula 1:', filterFormula);
+  // console.log('Trying filter formula 1:', filterFormula);
   
   let params = new URLSearchParams({
     filterByFormula: filterFormula,
@@ -92,12 +92,12 @@ async function getOrdersForUser(userId) {
     method: 'GET',
   });
   
-  console.log('Method 1 results:', data.records?.length || 0);
+  // console.log('Method 1 results:', data.records?.length || 0);
   
   // If that doesn't work, try method 2
   if (!data.records || data.records.length === 0) {
     filterFormula = `FIND("${userEscaped}", ARRAYJOIN({Spent By}))`;
-    console.log('Trying filter formula 2:', filterFormula);
+    // console.log('Trying filter formula 2:', filterFormula);
     
     params = new URLSearchParams({
       filterByFormula: filterFormula,
@@ -107,13 +107,13 @@ async function getOrdersForUser(userId) {
       method: 'GET',
     });
     
-    console.log('Method 2 results:', data.records?.length || 0);
+    // console.log('Method 2 results:', data.records?.length || 0);
   }
   
   // If still no results, try method 3
   if (!data.records || data.records.length === 0) {
     // Just get all orders and filter in JavaScript
-    console.log('Falling back to client-side filtering...');
+    // console.log('Falling back to client-side filtering...');
     data = await airtableRequest(`${encodeURIComponent(AIRTABLE_ORDERS_TABLE)}`, {
       method: 'GET',
     });
@@ -125,7 +125,7 @@ async function getOrdersForUser(userId) {
       });
     }
     
-    console.log('Method 3 (client-side) results:', data.records?.length || 0);
+    // console.log('Method 3 (client-side) results:', data.records?.length || 0);
   }
   
   if (!data.records) return [];
@@ -157,7 +157,7 @@ async function getOrdersForUser(userId) {
         shopItemCost = order.fields['ShopItemCost'][0] || 0;
       }
       
-      console.log('Order fields:', JSON.stringify(order.fields, null, 2));
+      // console.log('Order fields:', JSON.stringify(order.fields, null, 2));
       
       return {
         id: order.id,

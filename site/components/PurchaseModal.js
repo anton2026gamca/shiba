@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import ShippingInput from "./ShippingInput";
 
 export default function PurchaseModal({ isOpen, onClose, item, token, profile, setProfile, onViewOrders }) {
-  console.log('PurchaseModal props:', { isOpen, item, token, profile });
+  // console.log('PurchaseModal props:', { isOpen, item, token, profile });
   
   const [shouldRender, setShouldRender] = useState(Boolean(isOpen));
   const [isExiting, setIsExiting] = useState(false);
@@ -91,10 +91,10 @@ export default function PurchaseModal({ isOpen, onClose, item, token, profile, s
   const handlePurchase = async () => {
     if (!isFormValid() || isPurchasing) return;
     
-    console.log('handlePurchase called');
-    console.log('token:', token);
-    console.log('item?.id:', item?.id);
-    console.log('formData:', formData);
+    // console.log('handlePurchase called');
+    // console.log('token:', token);
+    // console.log('item?.id:', item?.id);
+    // console.log('formData:', formData);
     
     setIsPurchasing(true);
     try {
@@ -104,7 +104,7 @@ export default function PurchaseModal({ isOpen, onClose, item, token, profile, s
         shippingInfo: formData
       };
       
-      console.log('Request body:', requestBody);
+      // console.log('Request body:', requestBody);
       
       const response = await fetch('/api/Purchase', {
         method: 'POST',
@@ -116,8 +116,8 @@ export default function PurchaseModal({ isOpen, onClose, item, token, profile, s
       
       if (response.ok && data?.ok) {
         // Purchase successful
-        console.log('Purchase successful:', data.orderId);
-        console.log('Setting purchaseSuccessful to true');
+        // console.log('Purchase successful:', data.orderId);
+        // console.log('Setting purchaseSuccessful to true');
         
         // Update the user's SSS balance in the frontend state
         const purchaseAmount = parseFloat(item?.price) || 0;
@@ -129,11 +129,11 @@ export default function PurchaseModal({ isOpen, onClose, item, token, profile, s
           sssBalance: newBalance
         }));
         
-        console.log('Updated SSS balance:', { currentBalance, purchaseAmount, newBalance });
+        // console.log('Updated SSS balance:', { currentBalance, purchaseAmount, newBalance });
         
         // Show success state instead of closing immediately
         setPurchaseSuccessful(true);
-        console.log('purchaseSuccessful state should now be true');
+        // console.log('purchaseSuccessful state should now be true');
       } else {
         console.error('Purchase failed:', data?.message);
         

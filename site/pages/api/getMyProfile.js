@@ -31,11 +31,11 @@ export default async function handler(req, res) {
 
     // Ensure user has a referral code - assume uniqueness
     if (!user.fields?.ReferralCode || user.fields.ReferralCode.trim() === '') {
-      console.log(`User ${user.id} doesn't have a referral code, generating one...`);
+      // console.log(`User ${user.id} doesn't have a referral code, generating one...`);
       try {
         const newReferralCode = generateReferralCode();
         await updateUserReferralCode(user.id, newReferralCode);
-        console.log(`Generated and assigned referral code ${newReferralCode} to user ${user.id}`);
+        // console.log(`Generated and assigned referral code ${newReferralCode} to user ${user.id}`);
         
         // Update the user object to include the new referral code
         user.fields = user.fields || {};
@@ -45,12 +45,12 @@ export default async function handler(req, res) {
         // Don't fail the entire request if referral code generation fails
       }
     } else {
-      console.log(`User ${user.id} already has referral code: ${user.fields.ReferralCode}`);
+      // console.log(`User ${user.id} already has referral code: ${user.fields.ReferralCode}`);
     }
 
     const f = user.fields || {};
-    console.log('All user fields:', Object.keys(f));
-    console.log('All field values:', f);
+    // console.log('All user fields:', Object.keys(f));
+    // console.log('All field values:', f);
     const profile = normalizeProfileFields(f);
     return res.status(200).json({ ok: true, profile });
   } catch (e) {
@@ -164,15 +164,15 @@ function normalizeProfileFields(f) {
     }
   }
   
-  console.log('Found SSS Balance field:', foundField);
-  console.log('Raw SSS Balance value:', f[foundField]);
-  console.log('SSS Balance type:', typeof f[foundField]);
+  // console.log('Found SSS Balance field:', foundField);
+  // console.log('Raw SSS Balance value:', f[foundField]);
+  // console.log('SSS Balance type:', typeof f[foundField]);
   
   if (foundField && f[foundField] !== undefined) {
     sssBalance = typeof f[foundField] === 'number' ? f[foundField] : 0;
   }
   
-  console.log('Final sssBalance:', sssBalance);
+  // console.log('Final sssBalance:', sssBalance);
   
   return {
     email: typeof f.Email === 'string' ? f.Email : '',

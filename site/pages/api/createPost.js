@@ -223,7 +223,7 @@ export default async function handler(req, res) {
         }
       : null;
 
-    console.log('createPost result:', result);
+    // console.log('createPost result:', result);
     return res.status(200).json({ ok: true, post: result });
   } catch (error) {
     // eslint-disable-next-line no-console

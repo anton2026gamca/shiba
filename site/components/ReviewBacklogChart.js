@@ -27,16 +27,16 @@ export default function ReviewBacklogChart({ data = [] }) {
     if (data && data.length > 0 && canvasRef.current && !chartInstance.current) {
       const totalRecords = data.reduce((sum, item) => sum + item.value, 0);
       
-      console.log('ReviewBacklogChart data:', data);
-      console.log('Total records:', totalRecords);
+      // console.log('ReviewBacklogChart data:', data);
+      // console.log('Total records:', totalRecords);
       
       const needsReview = data.find(item => item.label === 'Needs Review')?.value || 0;
       const needsRereview = data.find(item => item.label === 'Needs Rereview')?.value || 0;
       const reviewed = data.find(item => item.label === 'Reviewed')?.value || 0;
       
-      console.log('Needs Review:', needsReview);
-      console.log('Needs Rereview:', needsRereview);
-      console.log('Reviewed:', reviewed);
+      // console.log('Needs Review:', needsReview);
+      // console.log('Needs Rereview:', needsRereview);
+      // console.log('Reviewed:', reviewed);
       
       const chartData = {
         labels: ['Review Status'],

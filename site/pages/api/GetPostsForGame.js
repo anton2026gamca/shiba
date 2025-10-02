@@ -29,32 +29,32 @@ export default async function handler(req, res) {
     // Find the game record by name first
     const gameRecord = await findGameByName(gameName);
     if (!gameRecord) {
-      console.log(`[GetPostsForGame] Game not found by name: ${gameName}`);
+      // console.log(`[GetPostsForGame] Game not found by name: ${gameName}`);
       return res.status(200).json([]);
     }
 
-    console.log(`[GetPostsForGame] Found game record: ${gameRecord.id} for name: ${gameName}`);
+    // console.log(`[GetPostsForGame] Found game record: ${gameRecord.id} for name: ${gameName}`);
 
     // Verify that the game's owner's slack ID matches the expected ownerSlackId
     const ownerId = normalizeLinkedIds(gameRecord.fields?.Owner)[0];
     if (!ownerId) {
-      console.log(`[GetPostsForGame] Game has no owner: ${gameName}`);
+      // console.log(`[GetPostsForGame] Game has no owner: ${gameName}`);
       return res.status(200).json([]);
     }
 
     const ownerRecord = await findUserById(ownerId);
     if (!ownerRecord) {
-      console.log(`[GetPostsForGame] Owner record not found for game: ${gameName}`);
+      // console.log(`[GetPostsForGame] Owner record not found for game: ${gameName}`);
       return res.status(200).json([]);
     }
 
     const gameOwnerSlackId = ownerRecord.fields?.['slack id'] || '';
     if (gameOwnerSlackId !== ownerSlackId) {
-      console.log(`[GetPostsForGame] Slack ID mismatch. Expected: ${ownerSlackId}, Found: ${gameOwnerSlackId} for game: ${gameName}`);
+      // console.log(`[GetPostsForGame] Slack ID mismatch. Expected: ${ownerSlackId}, Found: ${gameOwnerSlackId} for game: ${gameName}`);
       return res.status(200).json([]);
     }
 
-    console.log(`[GetPostsForGame] Verified owner match for game: ${gameName}, owner: ${ownerSlackId}`);
+    // console.log(`[GetPostsForGame] Verified owner match for game: ${gameName}, owner: ${ownerSlackId}`);
 
     // Fetch posts for the specific game
     const posts = await fetchPostsForGame(gameRecord.id);
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 }
 
 async function fetchPostsForGame(gameId) {
-  console.log('[GetPostsForGame] fetchPostsForGame gameId:', gameId);
+  // console.log('[GetPostsForGame] fetchPostsForGame gameId:', gameId);
   
   // Fetch all posts and filter by game ID
   const allPosts = await fetchAllAirtableRecords(AIRTABLE_POSTS_TABLE, {
@@ -80,7 +80,7 @@ async function fetchPostsForGame(gameId) {
     return linkedGameIds.includes(gameId);
   });
 
-  console.log(`[GetPostsForGame] found ${postsForGame.length} posts for game ${gameId}`);
+  // console.log(`[GetPostsForGame] found ${postsForGame.length} posts for game ${gameId}`);
 
   // Get game and user information for the posts
   const gameRecord = await findGameById(gameId);

@@ -166,7 +166,7 @@ async function findGameBySlackIdAndName(slackId, gameName) {
 }
 
 async function fetchPostsForGame(gameId) {
-  console.log('[getGame] fetchPostsForGame gameId:', gameId);
+  // console.log('[getGame] fetchPostsForGame gameId:', gameId);
   // First, try filtering server-side for performance and correctness
   const tryServerFilter = async () => {
     const params = new URLSearchParams();
@@ -177,7 +177,7 @@ async function fetchPostsForGame(gameId) {
     const url = `${encodeURIComponent(AIRTABLE_POSTS_TABLE)}?${params.toString()}`;
     const page = await airtableRequest(url, { method: 'GET' });
     const records = Array.isArray(page?.records) ? page.records : [];
-    console.log(`[getGame] server filter posts count for ${gameId}:`, records.length);
+    // console.log(`[getGame] server filter posts count for ${gameId}:`, records.length);
     return records;
   };
 
@@ -196,7 +196,7 @@ async function fetchPostsForGame(gameId) {
       allRecords = allRecords.concat(pageRecords);
       offset = page?.offset;
     } while (offset);
-    console.log(`[getGame] fallback client-filter posts count for ${gameId}:`, allRecords.length);
+    // console.log(`[getGame] fallback client-filter posts count for ${gameId}:`, allRecords.length);
     records = allRecords;
   }
 
@@ -279,17 +279,17 @@ async function fetchPostsForGame(gameId) {
 }
 
 async function fetchPlaysForGame(gameName, creatorSlackId) {
-  console.log('[getGame] fetchPlaysForGame gameName:', gameName, 'creatorSlackId:', creatorSlackId);
+  // console.log('[getGame] fetchPlaysForGame gameName:', gameName, 'creatorSlackId:', creatorSlackId);
   
   // First, we need to get the game's Airtable record ID to filter plays
   const gameRecord = await findGameBySlackIdAndName(creatorSlackId, gameName);
   if (!gameRecord) {
-    console.log('[getGame] Game record not found for plays lookup');
+    // console.log('[getGame] Game record not found for plays lookup');
     return [];
   }
   
   const gameId = gameRecord.id;
-  console.log('[getGame] Found game ID for plays lookup:', gameId);
+  // console.log('[getGame] Found game ID for plays lookup:', gameId);
   
   // First, try filtering server-side for performance
   const tryServerFilter = async () => {
@@ -304,7 +304,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
     const url = `${encodeURIComponent(AIRTABLE_PLAYS_TABLE)}?${params.toString()}`;
     const page = await airtableRequest(url, { method: 'GET' });
     const records = Array.isArray(page?.records) ? page.records : [];
-    console.log(`[getGame] server filter plays count for game ${gameId}:`, records.length);
+    // console.log(`[getGame] server filter plays count for game ${gameId}:`, records.length);
     return records;
   };
 
@@ -326,7 +326,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
       allRecords = allRecords.concat(pageRecords);
       offset = page?.offset;
     } while (offset);
-    console.log(`[getGame] fallback client-filter plays count for game ${gameId}:`, allRecords.length);
+    // console.log(`[getGame] fallback client-filter plays count for game ${gameId}:`, allRecords.length);
     records = allRecords;
   }
 
@@ -337,7 +337,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
       .filter(playerId => playerId && typeof playerId === 'string')
   )];
 
-  console.log(`[getGame] unique player IDs for game ${gameId}:`, uniquePlayerIds.length);
+  // console.log(`[getGame] unique player IDs for game ${gameId}:`, uniquePlayerIds.length);
 
   // Fetch player Slack IDs from Users table
   const playersWithSlackIds = await Promise.all(
@@ -363,7 +363,7 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
   );
 
   const uniquePlayerSlackIds = playersWithSlackIds.filter(slackId => slackId && typeof slackId === 'string');
-  console.log(`[getGame] unique player Slack IDs for game ${gameId}:`, uniquePlayerSlackIds.length);
+  // console.log(`[getGame] unique player Slack IDs for game ${gameId}:`, uniquePlayerSlackIds.length);
 
   // Fetch profile data for each player
   const playersWithProfiles = await Promise.all(

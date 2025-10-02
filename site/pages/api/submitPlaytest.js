@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         filterByFormula: `{PlaytestId} = "${escapedPlaytestId}"`
       }).firstPage();
     } catch (error) {
-      console.log('Method 1 failed:', error.message);
+      // console.log('Method 1 failed:', error.message);
     }
     
     // Method 2: Try with PlaytestID field (different casing)
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
           filterByFormula: `{PlaytestID} = "${escapedPlaytestId}"`
         }).firstPage();
       } catch (error) {
-        console.log('Method 2 failed:', error.message);
+        // console.log('Method 2 failed:', error.message);
       }
     }
     
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           return recordPlaytestId === playtestId;
         });
       } catch (error) {
-        console.log('Method 3 failed:', error.message);
+        // console.log('Method 3 failed:', error.message);
       }
     }
 

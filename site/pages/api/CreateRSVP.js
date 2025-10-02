@@ -29,11 +29,11 @@ export default async function handler(req, res) {
     }
 
     // Check if user already RSVPed for this event
-    console.log('🔍 Checking for existing RSVP for user:', userRecord.id, 'event:', event);
+    // console.log('🔍 Checking for existing RSVP for user:', userRecord.id, 'event:', event);
     const existingRSVP = await findExistingRSVP(userRecord.id, event);
-    console.log('🔍 Existing RSVP found:', existingRSVP ? 'YES' : 'NO');
+    // console.log('🔍 Existing RSVP found:', existingRSVP ? 'YES' : 'NO');
     if (existingRSVP) {
-      console.log('❌ User already RSVPed for this event, returning 409');
+      // console.log('❌ User already RSVPed for this event, returning 409');
       return res.status(409).json({ message: 'Already RSVPed for this event' });
     }
 
@@ -116,7 +116,7 @@ async function findExistingRSVP(userId, event) {
   const userIdEscaped = safeEscapeFormulaString(userId);
   const eventEscaped = safeEscapeFormulaString(event);
   const formula = `AND({User} = "${userIdEscaped}", {Event} = "${eventEscaped}")`;
-  console.log('🔍 Airtable formula for existing RSVP:', formula);
+  // console.log('🔍 Airtable formula for existing RSVP:', formula);
   const params = new URLSearchParams({
     filterByFormula: formula,
     pageSize: '1',
@@ -126,11 +126,11 @@ async function findExistingRSVP(userId, event) {
     const data = await airtableRequest(`${encodeURIComponent(AIRTABLE_RSVP_TABLE)}?${params.toString()}`, {
       method: 'GET',
     });
-    console.log('🔍 Airtable response for existing RSVP:', data.records ? data.records.length : 0, 'records');
+    // console.log('🔍 Airtable response for existing RSVP:', data.records ? data.records.length : 0, 'records');
     
     return data.records && data.records.length > 0 ? data.records[0] : null;
   } catch (error) {
-    console.log('❌ Error checking for existing RSVP:', error.message);
+    // console.log('❌ Error checking for existing RSVP:', error.message);
     return null;
   }
 }

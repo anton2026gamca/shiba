@@ -7,8 +7,8 @@ export default function GamesIndexPage({ games, error }) {
   // Debug: Log the first game to see what data we're getting
   useEffect(() => {
     if (games && games.length > 0) {
-      console.log('First game data:', games[0]);
-      console.log('Creator fields:', {
+      // console.log('First game data:', games[0]);
+      // console.log('Creator fields:', {
         creatorDisplayName: games[0].creatorDisplayName,
         creatorImage: games[0].creatorImage,
         slackId: games[0]['slack id']

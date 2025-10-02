@@ -36,7 +36,7 @@ async function fetchSiteSettings() {
   
   // Log the mainPageBackground setting for debugging
   if (settings.mainPageBackground) {
-    console.log('Site Settings - mainPageBackground:', settings.mainPageBackground);
+    // console.log('Site Settings - mainPageBackground:', settings.mainPageBackground);
   }
   
   return settings;

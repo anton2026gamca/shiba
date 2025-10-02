@@ -37,19 +37,19 @@ const ArtlogPostForm = forwardRef(({
         progress === 100 || progress === -1
       );
       
-      console.log('Artlog upload state check:', { uploadProgress, isUploading, hasUploads, hasErrors, allComplete });
+      // console.log('Artlog upload state check:', { uploadProgress, isUploading, hasUploads, hasErrors, allComplete });
       
       if (hasUploads && allComplete && !isUploading) {
         // All uploads are complete (either 100% or -1 for errors)
-        console.log('All uploads complete, setting upload state to false');
+        // console.log('All uploads complete, setting upload state to false');
         onUploadStateChange(false);
       } else if (isUploading || (hasUploads && !allComplete)) {
         // Some uploads are still in progress or preparing
-        console.log('Uploads in progress or preparing, setting upload state to true');
+        // console.log('Uploads in progress or preparing, setting upload state to true');
         onUploadStateChange(true);
       } else if (!hasUploads) {
         // No uploads at all, ensure upload state is false
-        console.log('No uploads, setting upload state to false');
+        // console.log('No uploads, setting upload state to false');
         onUploadStateChange(false);
       }
     }
@@ -64,7 +64,7 @@ const ArtlogPostForm = forwardRef(({
     
     // Notify parent that uploads are cleared
     if (onUploadStateChange) {
-      console.log('Clearing files, setting upload state to false');
+      // console.log('Clearing files, setting upload state to false');
       onUploadStateChange(false);
     }
   };
@@ -72,18 +72,18 @@ const ArtlogPostForm = forwardRef(({
   const uploadFileToS3 = async (file, fileType) => {
     const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
     
-    console.log('Starting upload for:', fileKey, fileType);
+    // console.log('Starting upload for:', fileKey, fileType);
     
     // Set initial progress and immediately notify parent
     setUploadProgress(prev => {
       const newProgress = { ...prev, [fileKey]: 0 };
-      console.log('Setting initial progress:', newProgress);
+      // console.log('Setting initial progress:', newProgress);
       return newProgress;
     });
     
     // Notify parent component about upload state change immediately
     if (onUploadStateChange) {
-      console.log('Notifying parent: upload started');
+      // console.log('Notifying parent: upload started');
       onUploadStateChange(true);
     }
     
@@ -105,7 +105,7 @@ const ArtlogPostForm = forwardRef(({
       clearInterval(progressInterval);
       
       if (result.ok) {
-        console.log('Upload successful for:', fileKey);
+        // console.log('Upload successful for:', fileKey);
         setUploadedFiles(prev => ({ 
           ...prev, 
           [fileType]: { fileKey, url: result.url, fileId: result.fileId } 
@@ -130,12 +130,12 @@ const ArtlogPostForm = forwardRef(({
           );
           
           if (allComplete && !isUploading && onUploadStateChange) {
-            console.log('Upload completed, updating parent state to false');
+            // console.log('Upload completed, updating parent state to false');
             onUploadStateChange(false);
           }
         }, 100);
       } else {
-        console.log('Upload failed for:', fileKey, result.error);
+        // console.log('Upload failed for:', fileKey, result.error);
         setUploadProgress(prev => ({ ...prev, [fileKey]: -1 }));
         
         // Show specific error message based on the error
@@ -160,7 +160,7 @@ const ArtlogPostForm = forwardRef(({
           );
           
           if (allComplete && !isUploading && onUploadStateChange) {
-            console.log('Upload failed but all uploads complete, updating parent state to false');
+            // console.log('Upload failed but all uploads complete, updating parent state to false');
             onUploadStateChange(false);
           }
         }, 100);
@@ -171,7 +171,7 @@ const ArtlogPostForm = forwardRef(({
       // Clear progress interval on error
       clearInterval(progressInterval);
       
-      console.log('Upload error for:', fileKey, error);
+      // console.log('Upload error for:', fileKey, error);
       setUploadProgress(prev => ({ ...prev, [fileKey]: -1 }));
       
       // Set generic error if not already set
@@ -184,7 +184,7 @@ const ArtlogPostForm = forwardRef(({
 
   // Function to validate form and get data
   const getFormData = () => {
-    console.log('getFormData called with:', { 
+    // console.log('getFormData called with:', { 
       postContent: postContent.trim(), 
       timelapseFile: !!timelapseFile, 
       githubImageLink: githubImageLink.trim(), 
@@ -199,35 +199,35 @@ const ArtlogPostForm = forwardRef(({
     
     // Validate required fields
     if (!postContent.trim()) {
-      console.log('getFormData: Missing content');
+      // console.log('getFormData: Missing content');
       setErrors({ content: 'Description is required' });
       return null;
     }
     if (!timelapseFile) {
-      console.log('getFormData: Missing timelapse file');
+      // console.log('getFormData: Missing timelapse file');
       setErrors({ timelapse: 'Timelapse video is required' });
       return null;
     }
     if (!githubImageLink.trim()) {
-      console.log('getFormData: Missing GitHub link');
+      // console.log('getFormData: Missing GitHub link');
       setErrors({ github: 'GitHub image link is required' });
       return null;
     }
     // Time screenshot is now optional
     // if (!timeScreenshotFile) {
-    //   console.log('getFormData: Missing screenshot file');
+    //   // console.log('getFormData: Missing screenshot file');
     //   setErrors({ screenshot: 'Time screenshot is required' });
     //   return null;
     // }
     if (hoursSpent === 0 && minutesSpent === 0) {
-      console.log('getFormData: Missing time spent');
+      // console.log('getFormData: Missing time spent');
       setErrors({ time: 'Please specify time spent' });
       return null;
     }
 
     // Validate that timelapse was uploaded successfully (screenshot is optional)
     if (!uploadedFiles.timelapse?.url) {
-      console.log('getFormData: Timelapse upload failed - no URL');
+      // console.log('getFormData: Timelapse upload failed - no URL');
       setErrors({ timelapse: 'Timelapse video upload failed. Please try again.' });
       return null;
     }
@@ -237,7 +237,7 @@ const ArtlogPostForm = forwardRef(({
     const timelapseKey = `${timelapseFile.name}-${timelapseFile.size}-${timelapseFile.lastModified}`;
     
     if (uploadProgress[timelapseKey] === -1) {
-      console.log('getFormData: Timelapse upload error detected');
+      // console.log('getFormData: Timelapse upload error detected');
       setErrors({ timelapse: 'Timelapse video upload failed. Please try again.' });
       return null;
     }
@@ -247,13 +247,13 @@ const ArtlogPostForm = forwardRef(({
       const screenshotKey = `${timeScreenshotFile.name}-${timeScreenshotFile.size}-${timeScreenshotFile.lastModified}`;
       
       if (uploadProgress[screenshotKey] === -1) {
-        console.log('getFormData: Screenshot upload error detected');
+        // console.log('getFormData: Screenshot upload error detected');
         setErrors({ screenshot: 'Time screenshot upload failed. Please try again.' });
         return null;
       }
     }
 
-    console.log('getFormData: All validation passed, returning data');
+    // console.log('getFormData: All validation passed, returning data');
     // Return validated data
     return {
       postType: 'artlog',
@@ -274,13 +274,13 @@ const ArtlogPostForm = forwardRef(({
       // AND ensure hours spent is greater than 0
       // AND ensure files were uploaded successfully (screenshot is optional)
       if (!postContent.trim() || !timelapseFile || !githubImageLink.trim() || (hoursSpent === 0 && minutesSpent === 0)) {
-        console.log('isValid: Basic validation failed');
+        // console.log('isValid: Basic validation failed');
         return false;
       }
       
       // Check that timelapse was uploaded successfully (screenshot is optional)
       if (!uploadedFiles.timelapse?.url) {
-        console.log('isValid: Missing timelapse uploaded file URL:', { timelapse: uploadedFiles.timelapse?.url });
+        // console.log('isValid: Missing timelapse uploaded file URL:', { timelapse: uploadedFiles.timelapse?.url });
         return false;
       }
       
@@ -288,13 +288,13 @@ const ArtlogPostForm = forwardRef(({
       const timelapseKey = `${timelapseFile.name}-${timelapseFile.size}-${timelapseFile.lastModified}`;
       
       if (uploadProgress[timelapseKey] === -1) {
-        console.log('isValid: Timelapse upload error detected:', { timelapse: uploadProgress[timelapseKey] });
+        // console.log('isValid: Timelapse upload error detected:', { timelapse: uploadProgress[timelapseKey] });
         return false;
       }
       
       // Ensure timelapse has completed uploading (progress = 100)
       if (uploadProgress[timelapseKey] !== 100) {
-        console.log('isValid: Timelapse upload not complete:', { timelapse: uploadProgress[timelapseKey] });
+        // console.log('isValid: Timelapse upload not complete:', { timelapse: uploadProgress[timelapseKey] });
         return false;
       }
       
@@ -303,17 +303,17 @@ const ArtlogPostForm = forwardRef(({
         const screenshotKey = `${timeScreenshotFile.name}-${timeScreenshotFile.size}-${timeScreenshotFile.lastModified}`;
         
         if (uploadProgress[screenshotKey] === -1) {
-          console.log('isValid: Screenshot upload error detected:', { screenshot: uploadProgress[screenshotKey] });
+          // console.log('isValid: Screenshot upload error detected:', { screenshot: uploadProgress[screenshotKey] });
           return false;
         }
         
         if (uploadProgress[screenshotKey] !== 100) {
-          console.log('isValid: Screenshot upload not complete:', { screenshot: uploadProgress[screenshotKey] });
+          // console.log('isValid: Screenshot upload not complete:', { screenshot: uploadProgress[screenshotKey] });
           return false;
         }
       }
       
-      console.log('isValid: All validation passed');
+      // console.log('isValid: All validation passed');
       return true;
     },
     isUploading: () => {
@@ -406,7 +406,7 @@ const ArtlogPostForm = forwardRef(({
                   if (onUploadStateChange) {
                     const remainingProgress = Object.values(uploadProgress).filter(key => key !== fileKey);
                     const hasActiveUploads = remainingProgress.some(progress => progress > 0 && progress < 100);
-                    console.log('Removing timelapse, remaining uploads:', remainingProgress, 'hasActive:', hasActiveUploads);
+                    // console.log('Removing timelapse, remaining uploads:', remainingProgress, 'hasActive:', hasActiveUploads);
                     onUploadStateChange(hasActiveUploads);
                   }
                 }}
@@ -494,7 +494,7 @@ const ArtlogPostForm = forwardRef(({
                   if (onUploadStateChange) {
                     const remainingProgress = Object.values(uploadProgress).filter(key => key !== fileKey);
                     const hasActiveUploads = remainingProgress.some(progress => progress > 0 && progress < 100);
-                    console.log('Removing screenshot, remaining uploads:', remainingProgress, 'hasActive:', hasActiveUploads);
+                    // console.log('Removing screenshot, remaining uploads:', remainingProgress, 'hasActive:', hasActiveUploads);
                     onUploadStateChange(hasActiveUploads);
                   }
                 }}
