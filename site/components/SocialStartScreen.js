@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { useActivityTracker } from './useActivityTracker';
+import UploadModal from './UploadModal';
 
 const PostAttachmentRenderer = dynamic(() => import('@/components/utils/PostAttachmentRenderer'), { ssr: false });
 const PlayGameComponent = dynamic(() => import('@/components/utils/playGameComponent'), { ssr: false });
@@ -821,6 +822,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
   const [selectedMessageProject, setSelectedMessageProject] = useState(null);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const mountedRef = useRef(false);
 
   // Load stamped games from server (only for logged-in users)
@@ -1263,6 +1265,29 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                 {token ? (
                   <>
                     <button 
+                      onClick={() => setShowUploadModal(true)}
+                      style={{
+                        padding: "8px 12px",
+                        border: `1px solid ${theme.border}`,
+                        borderRadius: "4px",
+                        backgroundColor: theme.surface,
+                        color: theme.text,
+                        cursor: "pointer",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                      title="Create Post"
+                    >
+                      <img 
+                        src="/upload.svg" 
+                        alt="Upload" 
+                        style={{ width: "16px", height: "16px" }}
+                      />
+                      Post
+                    </button>
+                    <button 
                       onClick={onEnterArcade}
                       style={{
                         padding: "8px 16px",
@@ -1274,7 +1299,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                         fontSize: "14px"
                       }}
                     >
-                      Enter Shiba Arcade
+                      Visit Arcade
                     </button>
                     {/* Profile Picture */}
                     {slackProfile?.image && (
@@ -2079,6 +2104,22 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
           }
         }
       `}</style>
+      
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        token={token}
+        profile={profile}
+        onPostCreated={() => {
+          // Refresh posts when a new post is created
+          setDisplayCount(12);
+          setPosts([]);
+          setPostsLoading(true);
+          setPostsError('');
+          setHasMore(true);
+        }}
+      />
     </div>
   );
 }

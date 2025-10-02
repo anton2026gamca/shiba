@@ -2679,20 +2679,6 @@ function DetailView({
                 </button>
                 <button
                   type="button"
-                  className={`moment-type-option${postType === "ship" ? " active" : ""}`}
-                  aria-selected={postType === "ship"}
-                  onClick={() => {
-                    setPostType("ship");
-                    setBuildFile(null);
-                    setPostFiles([]);
-                    setIsArtlogUploading(false);
-                    clearFileInputs();
-                  }}
-                >
-                  Demo
-                </button>
-                <button
-                  type="button"
                   className={`moment-type-option${postType === "artlog" ? " active" : ""}`}
                   aria-selected={postType === "artlog"}
                   onClick={() => {
@@ -2704,6 +2690,20 @@ function DetailView({
                   }}
                 >
                   Artlog
+                </button>
+                <button
+                  type="button"
+                  className={`moment-type-option${postType === "ship" ? " active" : ""}`}
+                  aria-selected={postType === "ship"}
+                  onClick={() => {
+                    setPostType("ship");
+                    setBuildFile(null);
+                    setPostFiles([]);
+                    setIsArtlogUploading(false);
+                    clearFileInputs();
+                  }}
+                >
+                  Demo
                 </button>
               </div>
               <button
