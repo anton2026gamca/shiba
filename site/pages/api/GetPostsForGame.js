@@ -152,6 +152,16 @@ async function fetchPostsForGame(gameId) {
       gameThumbnail = gameRecord.fields.Thumbnail[0].url;
     }
 
+    // Determine animated background: prefer post's GameAnimatedBackground, then game's AnimatedBackground
+    let gameAnimatedBackground = '';
+    if (typeof fields.GameAnimatedBackground === 'string') {
+      gameAnimatedBackground = fields.GameAnimatedBackground;
+    } else if (Array.isArray(fields.GameAnimatedBackground) && fields.GameAnimatedBackground[0]?.url) {
+      gameAnimatedBackground = fields.GameAnimatedBackground[0].url;
+    } else if (Array.isArray(gameRecord?.fields?.AnimatedBackground) && gameRecord.fields.AnimatedBackground[0]?.url) {
+      gameAnimatedBackground = gameRecord.fields.AnimatedBackground[0].url;
+    }
+
     return {
       'Created At': createdAt,
       PlayLink: playLink,
@@ -161,6 +171,7 @@ async function fetchPostsForGame(gameId) {
       Content: fields.Content || '',
       PostID: fields.PostID || '',
       GameThumbnail: gameThumbnail,
+      GameAnimatedBackground: gameAnimatedBackground,
       Badges: Array.isArray(fields.Badges) ? fields.Badges : [],
               postType: (fields.Timelapse && fields['Link to Github Asset'] && fields.TimeSpentOnAsset) ? 'artlog' : 'devlog',
       timelapseVideoId: fields.Timelapse || '',

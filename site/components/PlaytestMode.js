@@ -931,6 +931,7 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                   gameId={gameId}
                   gameName={playtestGame.gameName}
                   thumbnailUrl={playtestGame.gameThumbnail}
+                  animatedBackground={playtestGame.gameAnimatedBackground || ''}
                   token={token}
                   onPlayCreated={async (play) => {
                     try {

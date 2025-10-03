@@ -23,6 +23,8 @@ export default async function handler(req, res) {
     description,
     thumbnailUrl,
     thumbnailUpload,
+    animatedBackgroundUrl,
+    animatedBackgroundUpload,
     GitHubURL,
     ShowreelLink,
     HackatimeProjects,
@@ -125,6 +127,19 @@ export default async function handler(req, res) {
       }
     }
 
+    if (typeof animatedBackgroundUrl === "string" && animatedBackgroundUrl.trim().length > 0) {
+      const t = animatedBackgroundUrl.trim().substring(0, 500);
+      if (isValidUrl(t, ["https:", "http:"])) {
+        fields.AnimatedBackground = [
+          {
+            url: t,
+          },
+        ];
+      } else {
+        return res.status(400).json({ message: "Invalid animated background URL" });
+      }
+    }
+
     if (Object.keys(fields).length === 0) {
       return res.status(400).json({ message: "Nothing to update" });
     }
@@ -167,12 +182,18 @@ export default async function handler(req, res) {
             .json({ message: "Thumbnail file too large (max 5MB)" });
         }
 
+        // Sanitize filename on server side as well
+        const sanitizedThumbnailFilename = (filename || "upload")
+          .replace(/[<>:"/\\|?*]/g, "") // Remove dangerous characters
+          .substring(0, 100) // Limit length
+          .trim() || "upload";
+
         const uploadResult = await airtableContentUpload({
           recordId: gameId,
           fieldName: "Thumbnail",
           fileBase64,
           contentType,
-          filename,
+          filename: sanitizedThumbnailFilename,
         });
         // Ensure only a single attachment remains by patching to the uploaded attachment only
         try {
@@ -207,6 +228,71 @@ export default async function handler(req, res) {
       }
     }
 
+    // Handle animated background upload
+    if (animatedBackgroundUpload && typeof animatedBackgroundUpload === "object") {
+      const { fileBase64, contentType, filename } = animatedBackgroundUpload || {};
+      if (fileBase64 && contentType && filename) {
+        // Validate file type (only GIF for animated background)
+        if (contentType !== "image/gif") {
+          return res
+            .status(400)
+            .json({ message: "Invalid file type for animated background. Only GIF files are allowed." });
+        }
+
+        // Validate file size (max 5MB)
+        const fileSize = Math.ceil((fileBase64.length * 3) / 4);
+        if (fileSize > 5 * 1024 * 1024) {
+          return res
+            .status(400)
+            .json({ message: "Animated background file too large (max 5MB)" });
+        }
+
+        // Sanitize filename on server side as well
+        const sanitizedFilename = (filename || "animated-background")
+          .replace(/[<>:"/\\|?*]/g, "") // Remove dangerous characters
+          .substring(0, 100) // Limit length
+          .trim() || "animated-background";
+
+        const uploadResult = await airtableContentUpload({
+          recordId: gameId,
+          fieldName: "AnimatedBackground",
+          fileBase64,
+          contentType,
+          filename: sanitizedFilename,
+        });
+        // Ensure only a single attachment remains by patching to the uploaded attachment only
+        try {
+          const fieldArrays =
+            uploadResult && uploadResult.fields
+              ? Object.values(uploadResult.fields).filter((v) =>
+                  Array.isArray(v)
+                )
+              : [];
+          const uploadedArray = fieldArrays && fieldArrays[0];
+          const uploadedAtt =
+            Array.isArray(uploadedArray) && uploadedArray.length > 0
+              ? uploadedArray[uploadedArray.length - 1]
+              : null;
+          if (uploadedAtt && uploadedAtt.id) {
+            await airtableRequest(
+              `${encodeURIComponent(AIRTABLE_GAMES_TABLE)}/${encodeURIComponent(
+                gameId
+              )}`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({
+                  fields: { AnimatedBackground: [{ id: uploadedAtt.id }] },
+                }),
+              }
+            );
+          }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("post-upload animated background normalization failed:", e);
+        }
+      }
+    }
+
     // Fetch final record to return latest fields (in case upload occurred)
     const latest = await airtableRequest(
       `${encodeURIComponent(AIRTABLE_GAMES_TABLE)}/${encodeURIComponent(
@@ -225,6 +311,11 @@ export default async function handler(req, res) {
         Array.isArray(latest.fields?.Thumbnail) &&
         latest.fields.Thumbnail[0]?.url
           ? latest.fields.Thumbnail[0].url
+          : "",
+      animatedBackground:
+        Array.isArray(latest.fields?.AnimatedBackground) &&
+        latest.fields.AnimatedBackground[0]?.url
+          ? latest.fields.AnimatedBackground[0].url
           : "",
       GitHubURL: latest.fields?.GitHubURL || latest.fields?.GithubURL || "",
       ShowreelLink: latest.fields?.ShowreelLink || "",

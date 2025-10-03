@@ -2929,6 +2929,7 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
           gameId={gameId}
           gameName={gameName}
           thumbnailUrl={thumbnailUrl}
+          animatedBackground={''}
           token={token}
           onPlayCreated={onPlayCreated}
           onGameStart={onGameStart}

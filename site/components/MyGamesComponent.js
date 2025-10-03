@@ -177,6 +177,7 @@ export default function MyGamesComponent({
           name: g.name ?? g.Name ?? "",
           description: g.description ?? g.Description ?? "",
           thumbnailUrl: g.thumbnailUrl ?? "",
+          animatedBackground: g.animatedBackground ?? "",
           GitHubURL: g.GitHubURL ?? "",
           ShowreelLink: g.ShowreelLink ?? "",
           HackatimeProjects: g.HackatimeProjects ?? "",
@@ -329,6 +330,7 @@ export default function MyGamesComponent({
           name: g.name ?? g.Name ?? "",
           description: g.description ?? g.Description ?? "",
           thumbnailUrl: g.thumbnailUrl ?? "",
+          animatedBackground: g.animatedBackground ?? "",
           GitHubURL: g.GitHubURL ?? "",
           ShowreelLink: g.ShowreelLink ?? "",
           HackatimeProjects: g.HackatimeProjects ?? "",
@@ -655,6 +657,8 @@ function DetailView({
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailUrl, setThumbnailUrl] = useState(game?.thumbnailUrl || "");
   const [previewUrl, setPreviewUrl] = useState(game?.thumbnailUrl || "");
+  const [animatedBackgroundFile, setAnimatedBackgroundFile] = useState(null);
+  const [animatedBackgroundUrl, setAnimatedBackgroundUrl] = useState(game?.animatedBackground || "");
   const [GitHubURL, setGitHubURL] = useState(game?.GitHubURL || "");
   const [ShowreelLink, setShowreelLink] = useState(game?.ShowreelLink || "");
   const [availableProjects, setAvailableProjects] = useState([]);
@@ -858,6 +862,8 @@ function DetailView({
     setThumbnailUrl(game?.thumbnailUrl || "");
     setThumbnailFile(null);
     setPreviewUrl(game?.thumbnailUrl || "");
+    setAnimatedBackgroundUrl(game?.animatedBackground || "");
+    setAnimatedBackgroundFile(null);
     setGitHubURL(game?.GitHubURL || "");
     setShowreelLink(game?.ShowreelLink || "");
     setSelectedProjectsCsv(game?.HackatimeProjects || "");
@@ -1041,6 +1047,15 @@ function DetailView({
     };
   }, [thumbnailFile, thumbnailUrl]);
 
+  // Cleanup animated background object URL
+  useEffect(() => {
+    return () => {
+      if (animatedBackgroundFile) {
+        URL.revokeObjectURL(URL.createObjectURL(animatedBackgroundFile));
+      }
+    };
+  }, [animatedBackgroundFile]);
+
   const hasChanges = useMemo(() => {
     const initialName = game?.name || "";
     const initialDescription = game?.description || "";
@@ -1053,13 +1068,15 @@ function DetailView({
     const showreelChanged = (ShowreelLink || "") !== initialShowreel;
     const projectsChanged = (selectedProjectsCsv || "") !== initialProjects;
     const thumbnailChanged = Boolean(thumbnailFile);
+    const animatedBackgroundChanged = Boolean(animatedBackgroundFile);
     return (
       nameChanged ||
       descriptionChanged ||
       gitChanged ||
       showreelChanged ||
       projectsChanged ||
-      thumbnailChanged
+      thumbnailChanged ||
+      animatedBackgroundChanged
     );
   }, [
     game?.name,
@@ -1073,6 +1090,7 @@ function DetailView({
     ShowreelLink,
     selectedProjectsCsv,
     thumbnailFile,
+    animatedBackgroundFile,
   ]);
 
   const profileCompletionData = useMemo(() => {
@@ -1118,12 +1136,44 @@ function DetailView({
             reader.readAsDataURL(file);
           });
         const base64 = await toBase64(thumbnailFile);
+        // Sanitize filename to prevent injection attacks
+        const sanitizedThumbnailFilename = (thumbnailFile.name || "upload")
+          .replace(/[<>:"/\\|?*]/g, "") // Remove dangerous characters
+          .substring(0, 100) // Limit length
+          .trim() || "upload";
+        
         thumbnailUpload = {
           fileBase64: base64,
           contentType: thumbnailFile.type || "application/octet-stream",
-          filename: thumbnailFile.name || "upload",
+          filename: sanitizedThumbnailFilename,
         };
       }
+      
+      let animatedBackgroundUpload = null;
+      if (animatedBackgroundFile) {
+        // Convert animated background file to base64 for direct Airtable content upload (<= 5MB)
+        const toBase64 = (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve(String(reader.result).split(",")[1] || "");
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(file);
+          });
+        const base64 = await toBase64(animatedBackgroundFile);
+        // Sanitize filename to prevent injection attacks
+        const sanitizedFilename = (animatedBackgroundFile.name || "animated-background")
+          .replace(/[<>:"/\\|?*]/g, "") // Remove dangerous characters
+          .substring(0, 100) // Limit length
+          .trim() || "animated-background";
+        
+        animatedBackgroundUpload = {
+          fileBase64: base64,
+          contentType: animatedBackgroundFile.type || "application/octet-stream",
+          filename: sanitizedFilename,
+        };
+      }
+      
       const res = await fetch("/api/updateGame", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1134,6 +1184,8 @@ function DetailView({
           description,
           thumbnailUrl: uploadedUrl,
           thumbnailUpload,
+          animatedBackgroundUrl: animatedBackgroundUrl,
+          animatedBackgroundUpload,
           GitHubURL,
           ShowreelLink,
           HackatimeProjects: selectedProjectsCsv,
@@ -1146,6 +1198,7 @@ function DetailView({
           name: data.game.name,
           description: data.game.description,
           thumbnailUrl: data.game.thumbnailUrl || uploadedUrl || "",
+          animatedBackground: data.game.animatedBackground || animatedBackgroundUrl || "",
           GitHubURL: data.game.GitHubURL || GitHubURL || "",
           ShowreelLink: data.game.ShowreelLink || ShowreelLink || "",
           HackatimeProjects:
@@ -1157,6 +1210,8 @@ function DetailView({
         setDescription(updated.description);
         setThumbnailFile(null);
         setThumbnailUrl(updated.thumbnailUrl);
+        setAnimatedBackgroundFile(null);
+        setAnimatedBackgroundUrl(updated.animatedBackground);
         setGitHubURL(updated.GitHubURL);
         setShowreelLink(updated.ShowreelLink);
         setSelectedProjectsCsv(updated.HackatimeProjects);
@@ -1361,6 +1416,96 @@ function DetailView({
               https://youtu.be/UAS_pUTFA7o?si=8NSmFMgGsB8LiOGb
             </a>
           </div>
+          <div style={{ fontSize: 14, fontWeight: "bold", color: "#333" }}>
+            Animated Background
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <button
+              type="button"
+              className="nice-input"
+              style={{
+                textAlign: "left",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flex: 1,
+              }}
+              onClick={() => {
+                document.getElementById("animated-background-file-input")?.click();
+              }}
+            >
+              <span style={{ color: animatedBackgroundFile ? "#333" : "#999" }}>
+                {animatedBackgroundFile 
+                  ? `Selected: ${animatedBackgroundFile.name}` 
+                  : animatedBackgroundUrl 
+                    ? "Change Animated Background" 
+                    : "Upload Animated Background (GIF, max 5MB)"
+                }
+              </span>
+              {animatedBackgroundFile && (
+                <button
+                  type="button"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#b00020",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    padding: "2px 4px",
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAnimatedBackgroundFile(null);
+                    document.getElementById("animated-background-file-input").value = "";
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </button>
+            {(animatedBackgroundFile || animatedBackgroundUrl) && (
+              <div
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: "rgba(255,255,255,0.8)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={animatedBackgroundFile ? URL.createObjectURL(animatedBackgroundFile) : animatedBackgroundUrl}
+                  alt={animatedBackgroundFile ? "New animated background" : "Current animated background"}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#000",
+              opacity: 0.7,
+              lineHeight: 1.4,
+            }}
+          >
+            Upload a GIF file to use as an animated background for your game. This will be displayed behind the game when played.
+          </div>
         </div>
         <div
           style={{
@@ -1509,6 +1654,30 @@ function DetailView({
           onChange={(e) => {
             const file = e.target.files?.[0] || null;
             setThumbnailFile(file);
+          }}
+        />
+        <input
+          id="animated-background-file-input"
+          type="file"
+          accept=".gif"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const file = e.target.files?.[0] || null;
+            if (file) {
+              // Validate file size (5MB limit)
+              if (file.size > 5 * 1024 * 1024) {
+                alert("Animated background file must be under 5MB. Please choose a smaller file.");
+                e.target.value = "";
+                return;
+              }
+              // Validate file type
+              if (!file.type.startsWith("image/gif")) {
+                alert("Please select a GIF file for the animated background.");
+                e.target.value = "";
+                return;
+              }
+            }
+            setAnimatedBackgroundFile(file);
           }}
         />
         {(hasChanges || saving) && (

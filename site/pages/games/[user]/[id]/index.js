@@ -648,6 +648,7 @@ export default function GamesPage({ gameData, error }) {
                   gameId={gameId}
                   gameName={gameData?.name || id}
                   thumbnailUrl={gameData?.thumbnailUrl || ''}
+                  animatedBackground={gameData?.animatedBackground || ''}
                   width="100%"
                   gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                 />

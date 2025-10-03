@@ -102,6 +102,9 @@ export default async function handler(req, res) {
       thumbnailUrl: Array.isArray(targetGame.fields?.Thumbnail) && targetGame.fields.Thumbnail[0]?.url 
         ? targetGame.fields.Thumbnail[0].url 
         : '',
+      animatedBackground: Array.isArray(targetGame.fields?.AnimatedBackground) && targetGame.fields.AnimatedBackground[0]?.url 
+        ? targetGame.fields.AnimatedBackground[0].url 
+        : '',
       playableURL: targetGame.fields?.['Playable URL'] || '',
       GitHubURL: targetGame.fields?.GitHubURL || targetGame.fields?.GithubURL || '',
       HackatimeProjects: Array.isArray(targetGame.fields?.['Hackatime Projects'])

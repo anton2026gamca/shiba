@@ -1671,6 +1671,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                 gameId={gameId}
                                 gameName={gameName}
                                 thumbnailUrl={game.thumbnailUrl || ''}
+                                animatedBackground={game.animatedBackground || ''}
                                 token={token}
                                 activeGameId={activeGameId}
                                 onPlayCreated={(play) => {

@@ -11,7 +11,7 @@ import React, { useState, useRef, useEffect } from "react";
  * - apiBase: string (optional) override API base URL; defaults to NEXT_PUBLIC_API_BASE or same-origin
  * - style: React.CSSProperties (optional)
  */
-export default function PlayGameComponent({ gameId, width = "100%", apiBase, style, gameName, thumbnailUrl, token, onPlayCreated, onGameStart, onGameEnd, gamePageUrl, compact = false, activeGameId = null, isFromMainPage = false }) {
+export default function PlayGameComponent({ gameId, width = "100%", apiBase, style, gameName, thumbnailUrl, animatedBackground, token, onPlayCreated, onGameStart, onGameEnd, gamePageUrl, compact = false, activeGameId = null, isFromMainPage = false }) {
   const base = apiBase || process.env.NEXT_PUBLIC_API_BASE || "";
   const normalizedWidth = typeof width === "number" ? `${width}` : width;
   const [started, setStarted] = useState(false);
@@ -198,7 +198,7 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
             overflow: "hidden",
           }}
         >
-          {thumbnailUrl && (
+          {(animatedBackground || thumbnailUrl) && (
             <div
               style={{
                 position: "absolute",
@@ -206,12 +206,12 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundImage: `url(${thumbnailUrl})`,
+                backgroundImage: `url(${animatedBackground || thumbnailUrl})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 backgroundRepeat: "no-repeat",
-                filter: "blur(12px) brightness(0.3)",
-                transform: "scale(1.1)",
+                filter: animatedBackground ? "none" : "blur(12px) brightness(0.3)",
+                transform: animatedBackground ? "none" : "scale(1.1)",
                 zIndex: 0,
                 imageRendering: "pixelated",
               }}

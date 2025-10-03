@@ -194,6 +194,9 @@ export default async function handler(req, res) {
           thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
             ? fields.Thumbnail[0].url 
             : '',
+          animatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url 
+            ? fields.AnimatedBackground[0].url 
+            : '',
           playableURL: fields?.['Playable URL'] || '',
           GitHubURL: fields?.GitHubURL || fields?.GithubURL || '',
           HackatimeProjects: Array.isArray(fields?.['Hackatime Projects'])
@@ -288,6 +291,7 @@ export default async function handler(req, res) {
           Name: fields.Name || '',
           Description: fields.Description || '',
           Thumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url ? fields.Thumbnail[0].url : '',
+          AnimatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url ? fields.AnimatedBackground[0].url : '',
           'slack id': slackId || '',
           'Last Updated': fields['Last Updated'] || '',
           ShibaLink: fields.ShibaLink || '',

@@ -210,6 +210,7 @@ export default async function handler(req, res) {
         name: gameName,
         description: rec.fields?.Description || '',
         thumbnailUrl: Array.isArray(rec.fields?.Thumbnail) && rec.fields.Thumbnail[0]?.url ? rec.fields.Thumbnail[0].url : '',
+        animatedBackground: Array.isArray(rec.fields?.AnimatedBackground) && rec.fields.AnimatedBackground[0]?.url ? rec.fields.AnimatedBackground[0].url : '',
         GitHubURL: rec.fields?.GitHubURL || rec.fields?.GithubURL || '',
         ShowreelLink: rec.fields?.ShowreelLink || '',
         HackatimeProjects: Array.isArray(rec.fields?.['Hackatime Projects'])
