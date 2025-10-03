@@ -3051,7 +3051,8 @@ function DetailView({
                     badges={p.badges}
                     gamePageUrl={`https://shiba.hackclub.com/games/${SlackId}/${encodeURIComponent(game?.name || '')}`}
                     onPlayCreated={(play) => {
-                      // console.log("Play created:", play);
+                      // Play created by playGameComponent.js
+                      console.log('Play created:', play);
                     }}
                     postType={p.postType}
                     timelapseVideoId={p.timelapseVideoId}

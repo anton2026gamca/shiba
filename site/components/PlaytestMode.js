@@ -423,8 +423,26 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                     createdAt={post['Created At']}
                     token={token}
                     badges={Array.isArray(post.Badges) ? post.Badges : []}
-                    onPlayCreated={(play) => {
-                      // console.log('Play created:', play);
+                    onPlayCreated={async (play) => {
+                      try {
+                        const response = await fetch('/api/CreatePlay', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ 
+                            token: token || null, // Pass null for anonymous plays
+                            gameName: post['Game Name'] || '' 
+                          })
+                        });
+                        
+                        const data = await response.json();
+                        if (response.ok && data?.ok) {
+                          console.log('Play created successfully:', data.play);
+                        } else {
+                          console.error('Failed to create play:', data.message);
+                        }
+                      } catch (error) {
+                        console.error('Error creating play:', error);
+                      }
                     }}
                     postType={post.postType}
                     timelapseVideoId={post.timelapseVideoId}
@@ -914,8 +932,26 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                   gameName={playtestGame.gameName}
                   thumbnailUrl={playtestGame.gameThumbnail}
                   token={token}
-                  onPlayCreated={(play) => {
-                    // console.log('Play created:', play);
+                  onPlayCreated={async (play) => {
+                    try {
+                      const response = await fetch('/api/CreatePlay', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                          token: token || null, // Pass null for anonymous plays
+                          gameName: playtestGame.gameName || '' 
+                        })
+                      });
+                      
+                      const data = await response.json();
+                      if (response.ok && data?.ok) {
+                        console.log('Play created successfully:', data.play);
+                      } else {
+                        console.error('Failed to create play:', data.message);
+                      }
+                    } catch (error) {
+                      console.error('Error creating play:', error);
+                    }
                   }}
                   onGameStart={() => {
                     // console.log('Game started!');

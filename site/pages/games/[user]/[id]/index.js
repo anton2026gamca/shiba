@@ -929,7 +929,8 @@ export default function GamesPage({ gameData, error }) {
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                                 onPlayCreated={(play) => {
-                                  // Play created
+                                  // Play created by playGameComponent.js
+                                  console.log('Play created:', play);
                                 }}
                                 postType={p.postType}
                                 timelapseVideoId={p.timelapseVideoId}
@@ -970,7 +971,8 @@ export default function GamesPage({ gameData, error }) {
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                           onPlayCreated={(play) => {
-                            // Play created
+                            // Play created by playGameComponent.js
+                            console.log('Play created:', play);
                           }}
                           postType={p.postType}
                           timelapseVideoId={p.timelapseVideoId}
@@ -1052,7 +1054,8 @@ export default function GamesPage({ gameData, error }) {
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                                 onPlayCreated={(play) => {
-                                  // Play created
+                                  // Play created by playGameComponent.js
+                                  console.log('Play created:', play);
                                 }}
                                 postType={p.postType}
                                 timelapseVideoId={p.timelapseVideoId}
@@ -1093,7 +1096,8 @@ export default function GamesPage({ gameData, error }) {
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                           onPlayCreated={(play) => {
-                            // Play created
+                            // Play created by playGameComponent.js
+                            console.log('Play created:', play);
                           }}
                           postType={p.postType}
                           timelapseVideoId={p.timelapseVideoId}

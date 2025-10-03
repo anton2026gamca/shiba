@@ -1498,11 +1498,12 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                             thumbnailUrl={p.gameThumbnail || ''}
                             slackId={p.slackId}
                             createdAt={p.createdAt}
-                            token={null}
+                            token={token}
                             badges={p.badges}
                             gamePageUrl={`https://shiba.hackclub.com/games/${p.slackId}/${encodeURIComponent(p.gameName || '')}`}
                             onPlayCreated={(play) => {
-                              // Play created
+                              // Play created by playGameComponent.js
+                              console.log('Play created:', play);
                             }}
                             onGameStart={() => {
                               // Extract gameId from playLink for Posts
@@ -1670,9 +1671,11 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                                 gameId={gameId}
                                 gameName={gameName}
                                 thumbnailUrl={game.thumbnailUrl || ''}
-                                token={null}
+                                token={token}
                                 activeGameId={activeGameId}
                                 onPlayCreated={(play) => {
+                                  // Play created by playGameComponent.js
+                                  console.log('Play created:', play);
                                 }}
                                 onGameStart={() => {
                                   // Find the game record to get the Airtable ID

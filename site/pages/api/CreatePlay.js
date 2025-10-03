@@ -19,15 +19,18 @@ export default async function handler(req, res) {
 
   const { token, gameName } = req.body || {};
   
-  if (!token || !gameName) {
-    return res.status(400).json({ message: 'Missing required fields: token, gameName' });
+  if (!gameName) {
+    return res.status(400).json({ message: 'Missing required field: gameName' });
   }
 
   try {
-    // Find user by token
-    const userRecord = await findUserByToken(token);
-    if (!userRecord) {
-      return res.status(401).json({ message: 'Invalid token' });
+    // Find user by token (optional for anonymous plays)
+    let userRecord = null;
+    if (token) {
+      userRecord = await findUserByToken(token);
+      if (!userRecord) {
+        return res.status(401).json({ message: 'Invalid token' });
+      }
     }
 
     // Find game by name
@@ -39,14 +42,20 @@ export default async function handler(req, res) {
     // Generate random 16-character PlayID
     const playId = generatePlayId();
 
+    const fields = {
+      PlayID: playId,
+      Game: [gameRecord.id],
+    };
+    
+    // Only add Player field if user is logged in
+    if (userRecord) {
+      fields.Player = [userRecord.id];
+    }
+
     const payload = {
       records: [
         {
-          fields: {
-            PlayID: playId,
-            Game: [gameRecord.id],
-            Player: [userRecord.id],
-          },
+          fields,
         },
       ],
     };
@@ -61,8 +70,9 @@ export default async function handler(req, res) {
       ? { 
           playId: rec.fields?.PlayID || '', 
           gameId: rec.fields?.Game?.[0] || '', 
-          playerId: rec.fields?.Player?.[0] || '',
-          recordId: rec.id
+          playerId: rec.fields?.Player?.[0] || null, // null for anonymous plays
+          recordId: rec.id,
+          isAnonymous: !userRecord
         }
       : null;
 

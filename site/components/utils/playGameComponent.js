@@ -138,43 +138,7 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
             } catch (_) {}
             setAnimating(true);
 
-            // Create play record if token and gameName are provided
-            if (token && gameName) {
-              // console.log("🎮 PlayGameComponent: Creating play record...");
-              // console.log("🎮 Token available:", !!token);
-              // console.log("🎮 Game name:", gameName);
-              try {
-                const requestBody = { token, gameName };
-                // console.log(
-                //   "🎮 Request body:",
-                //   JSON.stringify(requestBody, null, 2),
-                // );
-
-                const res = await fetch("/api/CreatePlay", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(requestBody),
-                });
-                // console.log("🎮 Response status:", res.status);
-                // console.log("🎮 Response ok:", res.ok);
-
-                const data = await res.json().catch(() => ({}));
-                // console.log("🎮 Response data:", JSON.stringify(data, null, 2));
-
-                if (res.ok && data?.ok && onPlayCreated) {
-                  onPlayCreated(data.play);
-                }
-              } catch (error) {
-                console.error("❌ Failed to create play record:", error);
-              }
-            } else {
-              // console.log(
-              //   "🎮 PlayGameComponent: Skipping play record creation",
-              // );
-              // console.log("🎮 Token available:", !!token);
-              // console.log("🎮 Game name available:", !!gameName);
-            }
-
+            // Start the game immediately (non-blocking)
             setTimeout(() => {
               setStarted(true);
               setAnimating(false);
@@ -183,6 +147,35 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
                 onGameStart();
               }
             }, 600); // Reduced from 900ms to 600ms
+
+            // Create play record asynchronously (non-blocking)
+            if (gameName) {
+              // console.log("🎮 PlayGameComponent: Creating play record...");
+              // console.log("🎮 Token available:", !!token);
+              // console.log("🎮 Game name:", gameName);
+              
+              // Fire-and-forget API call - don't await it
+              fetch("/api/CreatePlay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: token || null, gameName }),
+              })
+                .then(res => res.json().catch(() => ({})))
+                .then(data => {
+                  if (data?.ok && onPlayCreated) {
+                    onPlayCreated(data.play);
+                  }
+                })
+                .catch(error => {
+                  console.error("❌ Failed to create play record:", error);
+                });
+            } else {
+              // console.log(
+              //   "🎮 PlayGameComponent: Skipping play record creation",
+              // );
+              // console.log("🎮 Token available:", !!token);
+              // console.log("🎮 Game name available:", !!gameName);
+            }
           }}
           style={{
             position: "absolute",
