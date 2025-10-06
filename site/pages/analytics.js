@@ -5,8 +5,9 @@ import HoursPerDayChart from "../components/HoursPerDayChart";
 import ReviewBacklogChart from "../components/ReviewBacklogChart";
 import DaysActiveChart from "../components/DaysActiveChart";
 import DailyActiveUsersChart from "../components/DailyActiveUsersChart";
+import ActivityChart from "../components/ActivityChart";
 
-export default function AnalyticsPage({ funnelData, signupData, hoursPerDayData, reviewBacklogData, daysActiveData, dailyActiveUsersData, gameTimeAnalytics }) {
+export default function AnalyticsPage({ funnelData, signupData, hoursPerDayData, reviewBacklogData, daysActiveData, dailyActiveUsersData, activityData }) {
   useEffect(() => {
     // Disable the animated background for this page
     const animatedBackground = document.querySelector('[style*="backgroundImage"]');
@@ -58,61 +59,32 @@ export default function AnalyticsPage({ funnelData, signupData, hoursPerDayData,
           </div>
         </div>
         
-        <HoursPerDayChart data={hoursPerDayData} />
+        {/* <HoursPerDayChart data={hoursPerDayData} /> */}
         
         <DaysActiveChart data={daysActiveData} />
         
         <DailyActiveUsersChart data={dailyActiveUsersData} />
         
-        {/* Game Time Analytics */}
-        <div style={{ 
-          marginTop: '40px', 
-          padding: '20px', 
-          border: '1px solid #e0e0e0', 
-          borderRadius: '8px',
-          backgroundColor: '#f9f9f9'
-        }}>
-          <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Game Time Analytics</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            <div>
-              <strong>Total Sessions:</strong> {gameTimeAnalytics.totalSessions}
-            </div>
-            <div>
-              <strong>Total Game Time:</strong> {gameTimeAnalytics.totalGameTimeMinutes} minutes
-            </div>
-            <div>
-              <strong>Average Session:</strong> {gameTimeAnalytics.averageSessionLengthMinutes} minutes
-            </div>
-            <div>
-              <strong>Games Played:</strong> {Object.keys(gameTimeAnalytics.sessionsByGame).length}
-            </div>
-          </div>
-          
-          {gameTimeAnalytics.dailyGameTimeArray.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <h4>Daily Game Time (Last 30 days)</h4>
-              <div style={{ fontSize: '12px', color: '#666' }}>
-                {gameTimeAnalytics.dailyGameTimeArray.slice(-30).map(day => (
-                  <div key={day.date}>
-                    {day.date}: {day.time} minutes
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <ActivityChart data={activityData} />
       </div>
     </div>
   );
 }
 
-export async function getServerSideProps() {
+export async function getStaticProps() {
   const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
   const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appg245A41MWc6Rej';
   const AIRTABLE_USERS_TABLE = process.env.AIRTABLE_USERS_TABLE || 'Users';
   const AIRTABLE_POSTS_TABLE = process.env.AIRTABLE_POSTS_TABLE || 'Posts';
-  const AIRTABLE_ACTIVITY_TABLE = process.env.AIRTABLE_ACTIVITY_TABLE || 'Activity';
+  const AIRTABLE_ACTIVITY_TABLE = process.env.AIRTABLE_ACTIVITY_TABLE || 'User Activity';
   const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
+
+  console.log('🔍 Analytics Debug Info:');
+  console.log('  AIRTABLE_API_KEY:', AIRTABLE_API_KEY ? `${AIRTABLE_API_KEY.substring(0, 8)}...` : 'MISSING');
+  console.log('  AIRTABLE_BASE_ID:', AIRTABLE_BASE_ID);
+  console.log('  AIRTABLE_USERS_TABLE:', AIRTABLE_USERS_TABLE);
+  console.log('  AIRTABLE_POSTS_TABLE:', AIRTABLE_POSTS_TABLE);
+  console.log('  AIRTABLE_ACTIVITY_TABLE:', AIRTABLE_ACTIVITY_TABLE);
 
   // Import Airtable for review backlog data
   const Airtable = require('airtable');
@@ -128,7 +100,18 @@ export async function getServerSideProps() {
         reviewBacklogData: [],
         daysActiveData: [],
         dailyActiveUsersData: [],
+        gameTimeAnalytics: {
+          totalSessions: 0,
+          totalGameTimeMinutes: 0,
+          averageSessionLengthMinutes: 0,
+          sessionsByGame: {},
+          dailyGameTimeArray: [],
+          hourlyGameTimeArray: []
+        },
+        activityData: [],
       },
+      // Cache for 1 hour (3600 seconds) in production, 60 seconds in development
+      revalidate: process.env.NODE_ENV === 'production' ? 3600 : 60
     };
   }
 
@@ -136,6 +119,8 @@ export async function getServerSideProps() {
     // Helper function to make Airtable requests
     async function airtableRequest(path, options = {}) {
       const url = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${path}`;
+      console.log(`🌐 Making Airtable request to: ${path}`);
+      
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -145,8 +130,15 @@ export async function getServerSideProps() {
         },
       });
 
+      console.log(`📡 Response status: ${response.status} for ${path}`);
+
       if (!response.ok) {
         const text = await response.text().catch(() => '');
+        console.error(`❌ Airtable error for ${path}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          body: text
+        });
         throw new Error(`Airtable error ${response.status}: ${text}`);
       }
       return response.json();
@@ -154,10 +146,15 @@ export async function getServerSideProps() {
 
     // Helper function to fetch all records from a table
     async function fetchAllAirtableRecords(tableName) {
+      console.log(`📊 Fetching records from table: ${tableName}`);
       let allRecords = [];
       let offset;
+      let pageCount = 0;
       
       do {
+        pageCount++;
+        console.log(`📄 Fetching page ${pageCount} for ${tableName}${offset ? ` (offset: ${offset})` : ''}`);
+        
         const params = new URLSearchParams();
         params.set('pageSize', '100');
         if (offset) params.set('offset', offset);
@@ -165,17 +162,47 @@ export async function getServerSideProps() {
         const page = await airtableRequest(`${encodeURIComponent(tableName)}?${params.toString()}`, { method: 'GET' });
         allRecords = allRecords.concat(page?.records || []);
         offset = page?.offset;
+        
+        console.log(`✅ Page ${pageCount} complete: ${page?.records?.length || 0} records (total so far: ${allRecords.length})`);
       } while (offset);
       
+      console.log(`🎯 Total records fetched from ${tableName}: ${allRecords.length}`);
       return allRecords;
     }
 
     // Fetch all users, posts, and activity data in parallel
-    const [allUsers, allPosts, allActivity] = await Promise.all([
-      fetchAllAirtableRecords(AIRTABLE_USERS_TABLE),
-      fetchAllAirtableRecords(AIRTABLE_POSTS_TABLE),
-      fetchAllAirtableRecords(AIRTABLE_ACTIVITY_TABLE)
-    ]);
+    console.log('🚀 Starting parallel fetch of all tables...');
+    
+    let allUsers = [], allPosts = [], allActivity = [];
+    
+    try {
+      console.log(`📊 Fetching ${AIRTABLE_USERS_TABLE}...`);
+      allUsers = await fetchAllAirtableRecords(AIRTABLE_USERS_TABLE);
+      console.log(`✅ ${AIRTABLE_USERS_TABLE}: ${allUsers.length} records`);
+    } catch (error) {
+      console.error(`❌ Error fetching ${AIRTABLE_USERS_TABLE}:`, error.message);
+    }
+    
+    try {
+      console.log(`📊 Fetching ${AIRTABLE_POSTS_TABLE}...`);
+      allPosts = await fetchAllAirtableRecords(AIRTABLE_POSTS_TABLE);
+      console.log(`✅ ${AIRTABLE_POSTS_TABLE}: ${allPosts.length} records`);
+    } catch (error) {
+      console.error(`❌ Error fetching ${AIRTABLE_POSTS_TABLE}:`, error.message);
+    }
+    
+    try {
+      console.log(`📊 Fetching ${AIRTABLE_ACTIVITY_TABLE}...`);
+      allActivity = await fetchAllAirtableRecords(AIRTABLE_ACTIVITY_TABLE);
+      console.log(`✅ ${AIRTABLE_ACTIVITY_TABLE}: ${allActivity.length} records`);
+    } catch (error) {
+      console.error(`❌ Error fetching ${AIRTABLE_ACTIVITY_TABLE}:`, error.message);
+    }
+    
+    console.log('🎯 Table fetch summary:');
+    console.log(`  Users: ${allUsers.length} records`);
+    console.log(`  Posts: ${allPosts.length} records`);
+    console.log(`  Activity: ${allActivity.length} records`);
 
     // Process daysActive data from all users
     const dailyHours = {};
@@ -360,6 +387,7 @@ export async function getServerSideProps() {
     };
 
     // Fetch review backlog data
+    console.log('📋 Fetching review backlog data...');
     const reviewStatuses = {
       'Needs Review': 0,
       'Needs Rereview': 0,
@@ -368,16 +396,24 @@ export async function getServerSideProps() {
 
     let allReviewRecords = [];
 
-    // Fetch all records from Active YSWS Record table (100 at a time)
-    await base('Active YSWS Record')
-      .select({
-        pageSize: 100,
-        fields: ['ReviewStatus']
-      })
-      .eachPage((records, fetchNextPage) => {
-        allReviewRecords = allReviewRecords.concat(records);
-        fetchNextPage();
-      });
+    try {
+      // Fetch all records from Active YSWS Record table (100 at a time)
+      console.log('🔍 Attempting to fetch from "Active YSWS Record" table...');
+      await base('Active YSWS Record')
+        .select({
+          pageSize: 100,
+          fields: ['ReviewStatus']
+        })
+        .eachPage((records, fetchNextPage) => {
+          console.log(`📄 Review records page: ${records.length} records`);
+          allReviewRecords = allReviewRecords.concat(records);
+          fetchNextPage();
+        });
+      console.log(`✅ Review backlog fetch complete: ${allReviewRecords.length} records`);
+    } catch (reviewError) {
+      console.error('❌ Error fetching review backlog:', reviewError);
+      console.log('🔄 Continuing without review backlog data...');
+    }
 
     // Count ReviewStatus values
     allReviewRecords.forEach(record => {
@@ -521,6 +557,70 @@ export async function getServerSideProps() {
 
     const gameTimeAnalytics = processGameTimeAnalytics(allActivity);
 
+    // Process activity data for the new chart
+    const processActivityData = (activityRecords) => {
+      console.log('📊 Processing activity data for chart...');
+      
+      const activityByDate = {};
+      
+      activityRecords.forEach(record => {
+        const timestamp = new Date(record.fields?.Timestamp || record.createdTime);
+        const dateKey = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const activityType = record.fields?.['Activity Type'];
+        
+        if (!activityByDate[dateKey]) {
+          activityByDate[dateKey] = {
+            date: dateKey,
+            heartbeats: 0,
+            tabSwitches: 0,
+            gamePlays: 0
+          };
+        }
+        
+        switch (activityType) {
+          case 'heartbeat':
+            activityByDate[dateKey].heartbeats++;
+            break;
+          case 'tab_switch':
+          case 'tabswitch':
+          case 'tab switch':
+          case 'tab_switch_start':
+          case 'tabswitch_start':
+            activityByDate[dateKey].tabSwitches++;
+            break;
+          case 'game_play':
+          case 'gameplay':
+          case 'game play':
+          case 'game_play_start':
+          case 'gameplay_start':
+          case 'game_play_end':
+          case 'gameplay_end':
+          case 'play_game':
+          case 'playgame':
+            activityByDate[dateKey].gamePlays++;
+            break;
+          default:
+            // Log unknown activity types for debugging
+            if (activityType && !activityType.includes('heartbeat')) {
+              console.log(`Unknown activity type: ${activityType}`);
+            }
+        }
+      });
+      
+      // Convert to array and sort by date
+      const activityArray = Object.values(activityByDate)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      console.log(`✅ Processed ${activityArray.length} days of activity data`);
+      console.log(`  Total heartbeats: ${activityArray.reduce((sum, d) => sum + d.heartbeats, 0)}`);
+      console.log(`  Total tab switches: ${activityArray.reduce((sum, d) => sum + d.tabSwitches, 0)}`);
+      console.log(`  Total game plays: ${activityArray.reduce((sum, d) => sum + d.gamePlays, 0)}`);
+      
+      return activityArray;
+    };
+
+    const activityData = processActivityData(allActivity);
+
     return {
       props: {
         funnelData,
@@ -529,8 +629,10 @@ export async function getServerSideProps() {
         reviewBacklogData,
         daysActiveData: daysActiveArray,
         dailyActiveUsersData: dailyActiveUsersArray,
-        gameTimeAnalytics,
+        activityData,
       },
+      // Cache for 1 hour (3600 seconds) in production, 60 seconds in development
+      revalidate: process.env.NODE_ENV === 'production' ? 3600 : 60
     };
   } catch (error) {
     console.error('Error fetching analytics data:', error);
@@ -570,7 +672,10 @@ export async function getServerSideProps() {
           dailyGameTimeArray: [],
           hourlyGameTimeArray: []
         },
+        activityData: [],
       },
+      // Cache for 1 hour (3600 seconds) in production, 60 seconds in development
+      revalidate: process.env.NODE_ENV === 'production' ? 3600 : 60
     };
   }
 }
