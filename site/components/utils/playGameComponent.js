@@ -57,6 +57,19 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [started, onGameEnd]);
 
+  // Ensure iframe gets focus when started for pointer lock
+  useEffect(() => {
+    if (started && iframeRef.current) {
+      // Small delay to ensure iframe is fully loaded
+      const timer = setTimeout(() => {
+        if (iframeRef.current) {
+          iframeRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [started]);
+
   if (!gameId) {
     return <div>Missing gameId.</div>;
   }
@@ -94,6 +107,13 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
       setTimeout(() => {
         iframeRef.current.src = currentSrc;
       }, 10);
+    }
+  };
+
+  const handleIframeClick = () => {
+    // Ensure iframe gets focus for pointer lock to work
+    if (iframeRef.current) {
+      iframeRef.current.focus();
     }
   };
 
@@ -400,12 +420,13 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
       {started && (
         <>
           <iframe
-            sandbox="allow-scripts allow-same-origin allow-downloads allow-forms allow-pointer-lock allow-popups"
+            sandbox="allow-scripts allow-same-origin allow-downloads allow-forms allow-pointer-lock allow-popups allow-top-navigation"
             credentialless={true}
             ref={iframeRef}
             src={url}
             title={`Play ${gameId}`}
             loading="eager"
+            onClick={handleIframeClick}
             style={{
               position: "absolute",
               inset: 0,
@@ -414,7 +435,7 @@ export default function PlayGameComponent({ gameId, width = "100%", apiBase, sty
               border: "1px solid #ddd",
               borderRadius: 8,
             }}
-            allow="autoplay; fullscreen; cross-origin-isolated; pointer-lock; microphone; camera"
+            allow="autoplay; fullscreen; cross-origin-isolated; pointer-lock; microphone; camera; gyroscope; accelerometer"
           />
           <div
             style={{
