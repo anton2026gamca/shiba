@@ -929,6 +929,7 @@ export default function GamesPage({ gameData, error }) {
                                 badges={p.badges}
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
+                                gitChanges={p.GitChanges}
                                 onPlayCreated={(play) => {
                                   // Play created by playGameComponent.js
                                   console.log('Play created:', play);
@@ -971,6 +972,7 @@ export default function GamesPage({ gameData, error }) {
                           badges={p.badges}
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
+                          gitChanges={p.GitChanges}
                           onPlayCreated={(play) => {
                             // Play created by playGameComponent.js
                             console.log('Play created:', play);
@@ -1054,6 +1056,7 @@ export default function GamesPage({ gameData, error }) {
                                 badges={p.badges}
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
+                                gitChanges={p.GitChanges}
                                 onPlayCreated={(play) => {
                                   // Play created by playGameComponent.js
                                   console.log('Play created:', play);
@@ -1096,6 +1099,7 @@ export default function GamesPage({ gameData, error }) {
                           badges={p.badges}
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
+                          gitChanges={p.GitChanges}
                           onPlayCreated={(play) => {
                             // Play created by playGameComponent.js
                             console.log('Play created:', play);

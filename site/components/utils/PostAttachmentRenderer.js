@@ -4,13 +4,14 @@ import dynamic from "next/dynamic";
 
 const PlayGameComponent = dynamic(() => import("@/components/utils/playGameComponent"), { ssr: false });
 
-export default function PostAttachmentRenderer({ content, attachments, playLink, gameName, thumbnailUrl, slackId, createdAt, token, onPlayCreated, badges, HoursSpent, gamePageUrl, postType, timelapseVideoId, githubImageLink, timeScreenshotId, hoursSpent, minutesSpent, postId, timeSpentOnAsset, currentUserProfile, onTimeUpdated, compact = false, onGameStart, onGameEnd, activeGameId, isFromMainPage = false }) {
+export default function PostAttachmentRenderer({ content, attachments, playLink, gameName, thumbnailUrl, slackId, createdAt, token, onPlayCreated, badges, HoursSpent, gamePageUrl, postType, timelapseVideoId, githubImageLink, timeScreenshotId, hoursSpent, minutesSpent, postId, timeSpentOnAsset, currentUserProfile, onTimeUpdated, compact = false, onGameStart, onGameEnd, activeGameId, isFromMainPage = false, gitChanges }) {
   const [slackProfile, setSlackProfile] = useState(null);
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [editHours, setEditHours] = useState(0);
   const [editMinutes, setEditMinutes] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localTimeSpentOnAsset, setLocalTimeSpentOnAsset] = useState(timeSpentOnAsset);
+  const [expandedCommits, setExpandedCommits] = useState({});
   
   // Calculate timeSpentOnAsset from hoursSpent and minutesSpent if not provided
   const calculatedTimeSpentOnAsset = localTimeSpentOnAsset || (hoursSpent && minutesSpent ? hoursSpent + (minutesSpent / 60) : 0);
@@ -3091,6 +3092,178 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
           </div>
         );
       })()}
+
+      {/* Git Changes - expandable commit chips */}
+      {gitChanges && gitChanges.commits && gitChanges.commits.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+          marginTop: '12px'
+        }}>
+          {gitChanges.commits.map((commit, commitIndex) => {
+            const totalAdditions = commit.files?.reduce((sum, f) => sum + (f.additions || 0), 0) || 0;
+            const totalDeletions = commit.files?.reduce((sum, f) => sum + (f.deletions || 0), 0) || 0;
+            const isExpanded = expandedCommits[commitIndex];
+            
+            // Sort files by total lines changed (descending)
+            const sortedFiles = commit.files ? [...commit.files].sort((a, b) => {
+              const aTotal = (a.additions || 0) + (a.deletions || 0);
+              const bTotal = (b.additions || 0) + (b.deletions || 0);
+              return bTotal - aTotal;
+            }) : [];
+            
+            return (
+              <div key={commitIndex} style={{ width: '100%' }}>
+                <div
+                  onClick={() => setExpandedCommits(prev => ({ ...prev, [commitIndex]: !prev[commitIndex] }))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    backgroundColor: '#f1f3f5',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#24292e',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: '1px solid #d0d7de',
+                    userSelect: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#e9ecef';
+                    e.currentTarget.style.borderColor = '#adb5bd';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f3f5';
+                    e.currentTarget.style.borderColor = '#d0d7de';
+                  }}
+                >
+                  {commit.github_link && (
+                    <a
+                      href={commit.github_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textDecoration: 'none',
+                        marginRight: '4px',
+                        padding: '3px',
+                        borderRadius: '4px',
+                        border: '1px solid transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+                        e.currentTarget.style.border = '1px solid rgba(0, 0, 0, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.border = '1px solid transparent';
+                      }}
+                    >
+                      <img 
+                        src="/githubIcon.svg" 
+                        alt="GitHub" 
+                        style={{ 
+                          width: '14px', 
+                          height: '14px',
+                          display: 'block',
+                          opacity: 0.6
+                        }} 
+                      />
+                    </a>
+                  )}
+                  <span style={{ 
+                    fontWeight: '500',
+                    wordBreak: 'break-word'
+                  }}>
+                    {commit.message}
+                  </span>
+                  {totalAdditions > 0 && (
+                    <span style={{ color: '#28a745', fontWeight: '600', fontSize: '11px' }}>
+                      +{totalAdditions}
+                    </span>
+                  )}
+                  {totalDeletions > 0 && (
+                    <span style={{ color: '#d73a49', fontWeight: '600', fontSize: '11px' }}>
+                      -{totalDeletions}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '10px', opacity: 0.6 }}>
+                    {isExpanded ? '▼' : '▶'}
+                  </span>
+                </div>
+                
+                {isExpanded && sortedFiles.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginTop: '6px',
+                    marginLeft: '8px',
+                    paddingLeft: '8px',
+                    borderLeft: '2px solid #e9ecef'
+                  }}>
+                    {sortedFiles.map((file, fileIndex) => (
+                      <a
+                        key={fileIndex}
+                        href={file.github_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 6px',
+                          backgroundColor: '#dfe6e9',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          color: '#2d3436',
+                          textDecoration: 'none',
+                          transition: 'all 0.15s ease',
+                          border: '1px solid rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#b2bec3';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#dfe6e9';
+                        }}
+                      >
+                        <span style={{ 
+                          fontFamily: 'monospace',
+                          wordBreak: 'break-word'
+                        }}>
+                          {file.filepath.split('/').pop()}
+                        </span>
+                        {!file.is_binary && (
+                          <>
+                            {file.additions > 0 && (
+                              <span style={{ color: '#28a745', fontWeight: '600' }}>
+                                +{file.additions}
+                              </span>
+                            )}
+                            {file.deletions > 0 && (
+                              <span style={{ color: '#d73a49', fontWeight: '600' }}>
+                                -{file.deletions}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

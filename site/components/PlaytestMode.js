@@ -423,6 +423,7 @@ export default function PlaytestMode({ onExit, profile, playtestGame, playSound,
                     createdAt={post['Created At']}
                     token={token}
                     badges={Array.isArray(post.Badges) ? post.Badges : []}
+                    gitChanges={post.GitChanges}
                     onPlayCreated={async (play) => {
                       try {
                         const response = await fetch('/api/CreatePlay', {

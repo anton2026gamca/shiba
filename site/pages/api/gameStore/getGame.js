@@ -210,75 +210,89 @@ async function fetchPostsForGame(gameId) {
     return bd - ad;
   });
 
-  return records.map((rec) => ({
-    id: rec.id,
-    postId: rec.fields?.PostID || '',
-    content: rec.fields?.Content || '',
-    createdAt: rec.fields?.['Created At'] || rec.createdTime || '',
-    PlayLink: typeof rec.fields?.PlayLink === 'string' ? rec.fields.PlayLink : '',
-    HoursSpent: rec.fields?.HoursSpent || 0,
-    attachments: (() => {
-      const airtableAttachments = Array.isArray(rec.fields?.Attachements)
-        ? rec.fields.Attachements.map((a) => ({
-            url: a?.url,
-            type: a?.type,
-            filename: a?.filename,
-            id: a?.id,
-            size: a?.size,
-          })).filter((a) => a.url)
-        : [];
-      
-      // Add S3 attachment links
-      const attachmentLinks = rec.fields?.AttachementLinks || '';
-      const s3Attachments = attachmentLinks
-        ? attachmentLinks.split(',').map(link => link.trim()).filter(link => link).map(url => {
-            const filename = url.split('/').pop() || 'attachment';
-            let ext = '';
-            
-            // Try to get extension from filename first
-            if (filename.includes('.')) {
-              ext = filename.split('.').pop().toLowerCase();
-            } 
-            // If no extension in filename, try to get it from the URL path
-            else {
-              const urlPath = new URL(url).pathname;
-              const pathParts = urlPath.split('.');
-              if (pathParts.length > 1) {
-                ext = pathParts[pathParts.length - 1].toLowerCase();
+  return records.map((rec) => {
+    // Parse GitChanges if it exists (it's stored as JSON string in Airtable)
+    let gitChanges = null;
+    if (rec.fields?.GitChanges) {
+      try {
+        gitChanges = typeof rec.fields.GitChanges === 'string' ? JSON.parse(rec.fields.GitChanges) : rec.fields.GitChanges;
+      } catch (e) {
+        // If parsing fails, keep it as null
+        gitChanges = null;
+      }
+    }
+
+    return {
+      id: rec.id,
+      postId: rec.fields?.PostID || '',
+      content: rec.fields?.Content || '',
+      createdAt: rec.fields?.['Created At'] || rec.createdTime || '',
+      PlayLink: typeof rec.fields?.PlayLink === 'string' ? rec.fields.PlayLink : '',
+      HoursSpent: rec.fields?.HoursSpent || 0,
+      attachments: (() => {
+        const airtableAttachments = Array.isArray(rec.fields?.Attachements)
+          ? rec.fields.Attachements.map((a) => ({
+              url: a?.url,
+              type: a?.type,
+              filename: a?.filename,
+              id: a?.id,
+              size: a?.size,
+            })).filter((a) => a.url)
+          : [];
+        
+        // Add S3 attachment links
+        const attachmentLinks = rec.fields?.AttachementLinks || '';
+        const s3Attachments = attachmentLinks
+          ? attachmentLinks.split(',').map(link => link.trim()).filter(link => link).map(url => {
+              const filename = url.split('/').pop() || 'attachment';
+              let ext = '';
+              
+              // Try to get extension from filename first
+              if (filename.includes('.')) {
+                ext = filename.split('.').pop().toLowerCase();
+              } 
+              // If no extension in filename, try to get it from the URL path
+              else {
+                const urlPath = new URL(url).pathname;
+                const pathParts = urlPath.split('.');
+                if (pathParts.length > 1) {
+                  ext = pathParts[pathParts.length - 1].toLowerCase();
+                }
               }
-            }
-            
-            // Determine content type from file extension
-            let contentType = 'application/octet-stream';
-            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
-              contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
-            } else if (['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'mpg', 'mpeg'].includes(ext)) {
-              contentType = `video/${ext}`;
-            } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext)) {
-              contentType = `audio/${ext}`;
-            }
-            
-            return {
-              url: url,
-              type: contentType,
-              filename: filename.includes('.') ? filename : `attachment.${ext}`,
-              id: `s3-${Date.now()}`,
-              size: 0
-            };
-          })
-        : [];
-      
-      return [...airtableAttachments, ...s3Attachments];
-    })(),
-    badges: Array.isArray(rec.fields?.Badges) ? rec.fields.Badges : [],
-    postType: (rec.fields?.Timelapse && rec.fields?.['Link to Github Asset'] && rec.fields?.TimeSpentOnAsset) ? 'artlog' : 'devlog',
-    timelapseVideoId: rec.fields?.Timelapse || '',
-    githubImageLink: rec.fields?.['Link to Github Asset'] || '',
-    timeScreenshotId: rec.fields?.TimeScreenshotFile || '',
-    hoursSpent: rec.fields?.HoursSpent || 0,
-    minutesSpent: 0,
-    timeSpentOnAsset: rec.fields?.TimeSpentOnAsset || 0,
-  }));
+              
+              // Determine content type from file extension
+              let contentType = 'application/octet-stream';
+              if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+                contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+              } else if (['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'mpg', 'mpeg'].includes(ext)) {
+                contentType = `video/${ext}`;
+              } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext)) {
+                contentType = `audio/${ext}`;
+              }
+              
+              return {
+                url: url,
+                type: contentType,
+                filename: filename.includes('.') ? filename : `attachment.${ext}`,
+                id: `s3-${Date.now()}`,
+                size: 0
+              };
+            })
+          : [];
+        
+        return [...airtableAttachments, ...s3Attachments];
+      })(),
+      badges: Array.isArray(rec.fields?.Badges) ? rec.fields.Badges : [],
+      postType: (rec.fields?.Timelapse && rec.fields?.['Link to Github Asset'] && rec.fields?.TimeSpentOnAsset) ? 'artlog' : 'devlog',
+      timelapseVideoId: rec.fields?.Timelapse || '',
+      githubImageLink: rec.fields?.['Link to Github Asset'] || '',
+      timeScreenshotId: rec.fields?.TimeScreenshotFile || '',
+      hoursSpent: rec.fields?.HoursSpent || 0,
+      minutesSpent: 0,
+      timeSpentOnAsset: rec.fields?.TimeSpentOnAsset || 0,
+      GitChanges: gitChanges,
+    };
+  });
 }
 
 async function fetchPlaysForGame(gameName, creatorSlackId) {

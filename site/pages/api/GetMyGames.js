@@ -180,6 +180,17 @@ export default async function handler(req, res) {
         // Calculate HoursSpent in decimal format for PostAttachmentRenderer (e.g., 0.72 for 43 minutes)
         const calculatedHoursSpent = hoursSpent + (minutesSpent / 60);
         
+        // Parse GitChanges if it exists (it's stored as JSON string in Airtable)
+        let gitChanges = null;
+        if (fields.GitChanges) {
+          try {
+            gitChanges = typeof fields.GitChanges === 'string' ? JSON.parse(fields.GitChanges) : fields.GitChanges;
+          } catch (e) {
+            // If parsing fails, keep it as null
+            gitChanges = null;
+          }
+        }
+        
         return {
           id: rec.id,
           createdTime: rec.createdTime,
@@ -202,6 +213,7 @@ export default async function handler(req, res) {
           minutesSpent: minutesSpent,
           timeSpentOnAsset: fields.TimeSpentOnAsset || 0,
           posterShomatoSeeds: fields.PosterShomatoSeeds || 0,
+          GitChanges: gitChanges,
         };
       });
       

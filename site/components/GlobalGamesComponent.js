@@ -330,6 +330,7 @@ export default function GlobalGamesComponent({ token, playtestMode, setPlaytestM
                       timeSpentOnAsset={p.timeSpentOnAsset}
                       minutesSpent={p.minutesSpent}
                       postId={p.postId}
+                      gitChanges={p.GitChanges}
                     />
                   </div>
                 </div>

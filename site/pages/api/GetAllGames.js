@@ -471,6 +471,17 @@ async function fetchPostsForGame(gameId) {
     hoursSpent: rec.fields?.HoursSpent || 0,
     minutesSpent: 0,
     timeSpentOnAsset: rec.fields?.TimeSpentOnAsset || 0,
+    GitChanges: (() => {
+      // Parse GitChanges if it exists (it's stored as JSON string in Airtable)
+      if (rec.fields?.GitChanges) {
+        try {
+          return typeof rec.fields.GitChanges === 'string' ? JSON.parse(rec.fields.GitChanges) : rec.fields.GitChanges;
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    })(),
   }));
 }
 
@@ -727,6 +738,17 @@ function transformPost(rec) {
     hoursSpent: rec.fields?.HoursSpent || 0,
     minutesSpent: 0,
     timeSpentOnAsset: rec.fields?.TimeSpentOnAsset || 0,
+    GitChanges: (() => {
+      // Parse GitChanges if it exists (it's stored as JSON string in Airtable)
+      if (rec.fields?.GitChanges) {
+        try {
+          return typeof rec.fields.GitChanges === 'string' ? JSON.parse(rec.fields.GitChanges) : rec.fields.GitChanges;
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    })(),
   };
 }
 

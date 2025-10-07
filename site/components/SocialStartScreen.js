@@ -1501,6 +1501,7 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                             token={token}
                             badges={p.badges}
                             gamePageUrl={`https://shiba.hackclub.com/games/${p.slackId}/${encodeURIComponent(p.gameName || '')}`}
+                            gitChanges={p.GitChanges}
                             onPlayCreated={(play) => {
                               // Play created by playGameComponent.js
                               console.log('Play created:', play);

@@ -3219,6 +3219,7 @@ function DetailView({
                     createdAt={p.createdAt}
                     badges={p.badges}
                     gamePageUrl={`https://shiba.hackclub.com/games/${SlackId}/${encodeURIComponent(game?.name || '')}`}
+                    gitChanges={p.GitChanges}
                     onPlayCreated={(play) => {
                       // Play created by playGameComponent.js
                       console.log('Play created:', play);

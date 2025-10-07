@@ -129,6 +129,17 @@ export default async function handler(req, res) {
         gameThumbnail = gameRec.fields.Thumbnail[0].url;
       }
 
+      // Parse GitChanges if it exists (it's stored as JSON string in Airtable)
+      let gitChanges = null;
+      if (fields.GitChanges) {
+        try {
+          gitChanges = typeof fields.GitChanges === 'string' ? JSON.parse(fields.GitChanges) : fields.GitChanges;
+        } catch (e) {
+          // If parsing fails, keep it as null
+          gitChanges = null;
+        }
+      }
+
       return {
         'Created At': createdAt,
         PlayLink: playLink,
@@ -147,6 +158,7 @@ export default async function handler(req, res) {
         minutesSpent: 0,
         timeSpentOnAsset: fields.TimeSpentOnAsset || 0,
         posterShomatoSeeds: fields.PosterShomatoSeeds || 0,
+        GitChanges: gitChanges,
       };
     });
 
