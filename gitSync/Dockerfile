@@ -42,12 +42,12 @@ RUN chown -R appuser:appgroup /gitSync
 # Create directory for temp files
 RUN mkdir -p /tmp/git-clones && chown appuser:appgroup /tmp/git-clones
 
-EXPOSE 3003
+EXPOSE 3073
 USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3003/health || exit 1
+  CMD curl -f http://localhost:3073/health || exit 1
 
 CMD ["python", "server.py"]
 
