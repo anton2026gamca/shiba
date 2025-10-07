@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  gitsync:
+    build: .
+    container_name: gitsync
+    ports:
+      - "3002:3002"
+    environment:
+      - AIRTABLE_API_KEY=${AIRTABLE_API_KEY}
+      - AIRTABLE_BASE_ID=${AIRTABLE_BASE_ID}
+      - PORT=3002
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
