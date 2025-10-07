@@ -191,13 +191,15 @@ export async function getStaticProps() {
       console.error(`❌ Error fetching ${AIRTABLE_POSTS_TABLE}:`, error.message);
     }
     
-    try {
-      console.log(`📊 Fetching ${AIRTABLE_ACTIVITY_TABLE}...`);
-      allActivity = await fetchAllAirtableRecords(AIRTABLE_ACTIVITY_TABLE);
-      console.log(`✅ ${AIRTABLE_ACTIVITY_TABLE}: ${allActivity.length} records`);
-    } catch (error) {
-      console.error(`❌ Error fetching ${AIRTABLE_ACTIVITY_TABLE}:`, error.message);
-    }
+    // TEMPORARILY DISABLED - causing build timeouts
+    // try {
+    //   console.log(`📊 Fetching ${AIRTABLE_ACTIVITY_TABLE}...`);
+    //   allActivity = await fetchAllAirtableRecords(AIRTABLE_ACTIVITY_TABLE);
+    //   console.log(`✅ ${AIRTABLE_ACTIVITY_TABLE}: ${allActivity.length} records`);
+    // } catch (error) {
+    //   console.error(`❌ Error fetching ${AIRTABLE_ACTIVITY_TABLE}:`, error.message);
+    // }
+    console.log('⚠️  User Activity fetch temporarily disabled to prevent build timeout');
     
     console.log('🎯 Table fetch summary:');
     console.log(`  Users: ${allUsers.length} records`);
