@@ -823,7 +823,10 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [userXP, setUserXP] = useState(0); // This comes from the API response
   const mountedRef = useRef(false);
+  const profileDropdownRef = useRef(null);
 
   // Load stamped games from server (only for logged-in users)
   useEffect(() => {
@@ -870,6 +873,70 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
   useEffect(() => {
     mountedRef.current = true;
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    if (showProfileDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileDropdown]);
+
+  // Calculate level and title based on XP
+  const calculateLevelAndTitle = (xp) => {
+    const getTitle = (xpEarned) => {
+      if (xpEarned >= 3000) return "Inu no Kami";
+      if (xpEarned >= 1905) return "Shiba Daimyō";
+      if (xpEarned >= 945) return "Inugami";
+      if (xpEarned >= 465) return "Tenshin Shiba";
+      if (xpEarned >= 225) return "Shiba Senshi";
+      if (xpEarned >= 105) return "Yamainu";
+      if (xpEarned >= 45) return "Inu no Deshi";
+      if (xpEarned >= 15) return "Komamori";
+      return "Koinu";
+    };
+
+    const getLevel = (xpEarned) => {
+      if (xpEarned >= 3000) return 9;
+      if (xpEarned >= 1905) return 8;
+      if (xpEarned >= 945) return 7;
+      if (xpEarned >= 465) return 6;
+      if (xpEarned >= 225) return 5;
+      if (xpEarned >= 105) return 4;
+      if (xpEarned >= 45) return 3;
+      if (xpEarned >= 15) return 2;
+      return 1;
+    };
+
+    const getXPToNextLevel = (xpEarned) => {
+      if (xpEarned >= 3000) return 0; // Max level
+      if (xpEarned >= 1905) return 3000 - xpEarned;
+      if (xpEarned >= 945) return 1905 - xpEarned;
+      if (xpEarned >= 465) return 945 - xpEarned;
+      if (xpEarned >= 225) return 465 - xpEarned;
+      if (xpEarned >= 105) return 225 - xpEarned;
+      if (xpEarned >= 45) return 105 - xpEarned;
+      if (xpEarned >= 15) return 45 - xpEarned;
+      return 15 - xpEarned;
+    };
+
+    return {
+      title: getTitle(xp),
+      level: getLevel(xp),
+      xpToNext: getXPToNextLevel(xp)
+    };
+  };
+
+  const levelInfo = calculateLevelAndTitle(userXP);
 
   // Debug: Track when active game changes
   useEffect(() => {
@@ -1036,6 +1103,8 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
             image: data.image || '',
             slackId: data.slackId || ''
           });
+          // Set the user's XP from the API response
+          setUserXP(data.xpEarned || 0);
         }
       } catch (e) {
         if (!cancelled) {
@@ -1301,29 +1370,119 @@ export default function SocialStartScreen({ games: initialGames = [], gamesError
                     >
                       Visit Arcade
                     </button>
-                    {/* Profile Picture */}
+                    {/* Profile Picture with Dropdown */}
                     {slackProfile?.image && (
-                      <div
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 4,
-                          border: `1px solid ${theme.border}`,
-                          backgroundColor: theme.surface,
-                          backgroundImage: `url(${slackProfile.image})`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                          backgroundRepeat: "no-repeat",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
+                      <div 
+                        ref={profileDropdownRef}
+                        style={{ position: "relative" }}
                       >
-                        <img
-                          src={slackProfile.image}
-                          alt={slackProfile.displayName || "Profile"}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 3 }}
-                        />
+                        <div
+                          onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 4,
+                            border: `1px solid ${theme.border}`,
+                            backgroundColor: theme.surface,
+                            backgroundImage: `url(${slackProfile.image})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            backgroundRepeat: "no-repeat",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <img
+                            src={slackProfile.image}
+                            alt={slackProfile.displayName || "Profile"}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 3 }}
+                          />
+                        </div>
+                        
+                        {/* Dropdown Menu */}
+                        {showProfileDropdown && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "40px",
+                              right: 0,
+                              backgroundColor: theme.surface,
+                              border: `1px solid ${theme.border}`,
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                              minWidth: "200px",
+                              zIndex: 1000,
+                              overflow: "hidden"
+                            }}
+                          >
+                            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${theme.border}` }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                {/* Current Level */}
+                                <div style={{ fontSize: "12px", color: theme.textSecondary }}>
+                                  <p style={{ margin: "0 0 6px 0" }}>
+                                    <span style={{ opacity: 0.6 }}>Current Level: </span>
+                                    <span style={{ color: theme.text, opacity: 1 }}>{levelInfo.title}</span>
+                                  </p>
+                                </div>
+                                
+                                {/* XP Display */}
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <img 
+                                    src="/xpOrb.gif" 
+                                    alt="XP Orb" 
+                                    style={{ 
+                                      width: "16px", 
+                                      height: "16px", 
+                                      imageRendering: "pixelated"
+                                    }} 
+                                  />
+                                  <p style={{ margin: 0, fontSize: "14px", color: theme.text, fontWeight: "bold" }}>
+                                    {userXP}
+                                  </p>
+                                </div>
+                                
+                                {/* Additional Info */}
+                                <div style={{ fontSize: "12px", color: theme.textSecondary }}>
+                                  <p style={{ margin: "2px 0" }}>
+                                    {levelInfo.xpToNext > 0 ? `XP to next level: ${levelInfo.xpToNext}` : "Max Level!"}
+                                  </p>
+                                  <p style={{ margin: "4px 0 0 0", fontSize: "10px", fontStyle: "italic", opacity: 0.5 }}>
+                                    Every hour you spend, you'll gain 15 XP
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                // Clear token and reload
+                                localStorage.removeItem('token');
+                                setToken?.(null);
+                                window.location.reload();
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "12px 16px",
+                                border: "none",
+                                backgroundColor: "transparent",
+                                color: theme.text,
+                                fontSize: "14px",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                transition: "background-color 0.2s ease"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = isDarkMode ? "#40444b" : "#f5f5f5";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = "transparent";
+                              }}
+                            >
+                              Logout
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>

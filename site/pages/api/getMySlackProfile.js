@@ -46,11 +46,14 @@ export default async function handler(req, res) {
     }
 
     const slackId = user.fields?.['slack id'];
+    const xpEarned = user.fields?.['XP-Earned'] || 0;
+    
     if (!slackId || typeof slackId !== 'string') {
       return res.status(200).json({ 
         slackId: '', 
         image: '', 
-        displayName: '' 
+        displayName: '',
+        xpEarned: xpEarned
       });
     }
 
@@ -90,7 +93,8 @@ export default async function handler(req, res) {
       return res.status(200).json({
         slackId: slackId,
         image: sanitizedImage,
-        displayName: sanitizedDisplayName
+        displayName: sanitizedDisplayName,
+        xpEarned: xpEarned
       });
     } catch (fetchError) {
       if (fetchError.name === 'AbortError') {
@@ -101,7 +105,8 @@ export default async function handler(req, res) {
       return res.status(200).json({
         slackId: slackId,
         image: '',
-        displayName: ''
+        displayName: '',
+        xpEarned: xpEarned
       });
     }
   } catch (e) {
