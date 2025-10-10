@@ -78,8 +78,9 @@ export default async function handler(req, res) {
       // console.log(`Fetched ${allPlays.length} plays`);
       
       // Fetch all feedback
+      console.log('📝 Fetching GameFeedback records...');
       const allFeedback = await fetchAllFeedback();
-      // console.log(`Fetched ${allFeedback.length} feedback records`);
+      console.log(`✅ Fetched ${allFeedback.length} GameFeedback records`);
       
       // Fetch all users for play data
       const allUsers = await fetchAllUsers();
@@ -250,7 +251,13 @@ export default async function handler(req, res) {
 
       // Filter out null results and return
       const validGames = gamesWithFullData.filter(game => game !== null);
-      // console.log(`Returning ${validGames.length} games with full data`);
+      
+      // Log feedback statistics
+      const gamesWithFeedback = validGames.filter(game => game.feedbackCount > 0);
+      const totalFeedbackCount = validGames.reduce((sum, game) => sum + (game.feedbackCount || 0), 0);
+      console.log(`📊 GameFeedback stats: ${gamesWithFeedback.length} games have feedback (${totalFeedbackCount} total feedback records)`);
+      console.log(`✅ Returning ${validGames.length} games with full data`);
+      
       return res.status(200).json(validGames);
     } else {
       // For basic data, fetch creator profiles and return the simple format
