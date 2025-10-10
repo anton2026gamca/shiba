@@ -91,6 +91,17 @@ export default async function handler(req, res) {
       // Don't fail the request if cache update fails
     }
 
+    // Trigger on-demand revalidation of the game page
+    try {
+      const gamePath = `/games/${encodeURIComponent(gameSlackId)}/${encodeURIComponent(gameName)}`;
+      console.log('[CreateGameFeedback] Triggering revalidation for:', gamePath);
+      await res.revalidate(gamePath);
+      console.log('[CreateGameFeedback] Revalidation triggered successfully');
+    } catch (revalidateError) {
+      console.error('[CreateGameFeedback] Error triggering revalidation:', revalidateError);
+      // Don't fail the request if revalidation fails
+    }
+
     return res.status(200).json({ ok: true, feedback: result });
   } catch (error) {
     // eslint-disable-next-line no-console

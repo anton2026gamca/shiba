@@ -239,6 +239,24 @@ export default async function handler(req, res) {
       // Don't fail the request if cache update fails
     }
 
+    // Trigger on-demand revalidation of the game page
+    try {
+      const gameName = game?.fields?.Name || '';
+      const gameSlackId = Array.isArray(game?.fields?.['slack id']) 
+        ? game.fields['slack id'][0] 
+        : game?.fields?.['slack id'] || '';
+      
+      if (gameName && gameSlackId) {
+        const gamePath = `/games/${encodeURIComponent(gameSlackId)}/${encodeURIComponent(gameName)}`;
+        console.log('[createPost] Triggering revalidation for:', gamePath);
+        await res.revalidate(gamePath);
+        console.log('[createPost] Revalidation triggered successfully');
+      }
+    } catch (revalidateError) {
+      console.error('[createPost] Error triggering revalidation:', revalidateError);
+      // Don't fail the request if revalidation fails
+    }
+
     // console.log('createPost result:', result);
     return res.status(200).json({ ok: true, post: result });
   } catch (error) {
