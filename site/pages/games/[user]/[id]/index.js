@@ -905,7 +905,8 @@ function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
-          gameId,
+          gameName: game?.name,
+          gameSlackId: game?.slackId,
           message: message.trim(),
           starRanking: starRating
         }),
