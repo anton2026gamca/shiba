@@ -24,12 +24,12 @@ export default function PlaytestTicket({ playtest, onPlaytestClick }) {
   const daysRemaining = Math.max(0, PLAYTEST_DAYS - diffDays);
 
   // collapsible feedback; only on complete playtests
-  const [showFeedback, setShowFeedback] = React.useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   // ref for feedback container to measure height so we can have nice size transitions
   // I'm not sure if this is the cleanest way to do this, but most of the app is a vibe-coded mess so whatever
   const feedbackRef = React.useRef(null);
-  const [feedbackHeight, setFeedbackHeight] = React.useState(0);
+  const [feedbackHeight, setFeedbackHeight] = useState(0);
 
   React.useEffect(() => {
     if (playtest.status === 'Complete' && playtest.feedback && feedbackRef.current) {

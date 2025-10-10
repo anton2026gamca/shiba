@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ShopItemRenderer from "./utils/ShopItemRenderer";
+import ServiceItemRenderer from "./utils/ServiceItemRenderer";
 import PurchaseModal from "./PurchaseModal";
 import useAudioManager from "./useAudioManager";
 
@@ -8,6 +9,7 @@ export default function ShopComponent({ profile, token, setProfile }) {
   // console.log('ShopComponent sssBalance:', profile?.sssBalance);
   const { play: playSound, stopAll } = useAudioManager(["mysteryShopMusic.mp3"]);
   const [shopItems, setShopItems] = useState([]);
+  const [serviceItems, setServiceItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
@@ -37,8 +39,12 @@ export default function ShopComponent({ profile, token, setProfile }) {
         
         const data = await response.json();
         
-        // Transform the API data to match the expected format for ShopItemRenderer
-        const transformedItems = data.map(item => {
+        // Separate shop items and service items
+        const shopData = data.filter(item => item.source === 'shop');
+        const serviceData = data.filter(item => item.source === 'services');
+        
+        // Transform shop items
+        const transformedShopItems = shopData.map(item => {
           let images = ["/comingSoon.png"]; // Default image
           
           // Get all images from the Images field
@@ -59,14 +65,15 @@ export default function ShopComponent({ profile, token, setProfile }) {
           };
         });
         
-        // Sort items by price (lowest to highest)
-        const sortedItems = transformedItems.sort((a, b) => {
+        // Sort shop items by price (lowest to highest)
+        const sortedShopItems = transformedShopItems.sort((a, b) => {
           const priceA = parseInt(a.price) || 0;
           const priceB = parseInt(b.price) || 0;
           return priceA - priceB;
         });
         
-        setShopItems(sortedItems);
+        setShopItems(sortedShopItems);
+        setServiceItems(serviceData);
       } catch (err) {
         console.error('Error fetching shop items:', err);
         setError('Failed to load shop items');
@@ -320,7 +327,61 @@ export default function ShopComponent({ profile, token, setProfile }) {
             
             {!isLoading && !error && (
               <>
-                <div style={{
+                {/* Services Section */}
+                {serviceItems.length > 0 && (
+                  <div style={{
+                    marginBottom: "40px",
+                    padding: "20px",
+                    backgroundColor: "rgba(255, 255, 255, 0.5)",
+                    borderRadius: "12px",
+                    border: "2px solid rgba(45, 90, 39, 0.2)"
+                  }}>
+                    <h2 style={{
+                      margin: "0 0 20px 0",
+                      fontSize: "24px",
+                      fontWeight: "700",
+                      color: "#2d5a27",
+                      textAlign: "center"
+                    }}>
+                      Shiba Art Exchange Weekend
+                    </h2>
+                    <div className="services-grid" style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: "20px",
+                      width: "100%",
+                      maxWidth: "100%",
+                      boxSizing: "border-box"
+                    }}>
+                      {serviceItems.map((service) => (
+                        <div key={service.id} style={{
+                          width: "100%",
+                          minWidth: 0,
+                          boxSizing: "border-box"
+                        }}>
+                          <ServiceItemRenderer
+                            name={service.Name}
+                            description={service.Description}
+                            type={service.type}
+                            portfolioPieces={service.portfolioPieces}
+                            priceStructures={service.priceStructures}
+                            slackId={service.slackId}
+                            onContactClick={() => {
+                              // Open Slack DM - construct Slack deep link
+                              const slackUrl = service.slackId 
+                                ? `slack://user?team=T080M7VG6JY&id=${service.slackId}`
+                                : `https://shibaspace.slack.com`;
+                              window.open(slackUrl, '_blank');
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Shop Items Section */}
+                <div className="shop-items-grid" style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(3, 1fr)",
                   gap: "20px"
@@ -343,14 +404,16 @@ export default function ShopComponent({ profile, token, setProfile }) {
                       />
                     ))
                   ) : (
-                    <div style={{
-                      gridColumn: "1 / -1",
-                      textAlign: "center",
-                      padding: "40px",
-                      color: "#2d5a27"
-                    }}>
-                      <p>No shop items available at the moment.</p>
-                    </div>
+                    serviceItems.length === 0 && (
+                      <div style={{
+                        gridColumn: "1 / -1",
+                        textAlign: "center",
+                        padding: "40px",
+                        color: "#2d5a27"
+                      }}>
+                        <p>No shop items available at the moment.</p>
+                      </div>
+                    )
                   )}
                 </div>
                 
@@ -724,6 +787,14 @@ function ExplainerModal({ isOpen, onClose }) {
           100% {
             transform: scale(1);
             opacity: 1;
+          }
+        }
+        @media (max-width: 768px) {
+          .services-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .shop-items-grid {
+            grid-template-columns: 1fr !important;
           }
         }
       `}</style>

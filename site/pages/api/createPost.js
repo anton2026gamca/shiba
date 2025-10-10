@@ -1,4 +1,6 @@
 import { safeEscapeFormulaString, generateSecureRandomString } from './utils/security.js';
+import fs from 'fs';
+import path from 'path';
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appg245A41MWc6Rej';
@@ -7,6 +9,7 @@ const AIRTABLE_GAMES_TABLE = process.env.AIRTABLE_GAMES_TABLE || 'Games';
 const AIRTABLE_POSTS_TABLE = process.env.AIRTABLE_POSTS_TABLE || 'Posts';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 const ALPHANUMERIC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+const CACHE_FILE = path.join(process.cwd(), '.next/games-cache.json');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -223,6 +226,19 @@ export default async function handler(req, res) {
         }
       : null;
 
+    // Update the gameStore cache with the new post
+    console.log('[createPost] Attempting to update cache...');
+    console.log('[createPost] gameId:', gameId);
+    console.log('[createPost] result:', result);
+    
+    try {
+      await updateCacheWithNewPost(gameId, result);
+      console.log('[createPost] Cache update successful');
+    } catch (cacheError) {
+      console.error('[createPost] Error updating cache:', cacheError);
+      // Don't fail the request if cache update fails
+    }
+
     // console.log('createPost result:', result);
     return res.status(200).json({ ok: true, post: result });
   } catch (error) {
@@ -241,6 +257,63 @@ export const config = {
 };
 
 
+
+async function updateCacheWithNewPost(gameId, newPost) {
+  console.log('[updateCacheWithNewPost] Starting cache update...');
+  console.log('[updateCacheWithNewPost] CACHE_FILE path:', CACHE_FILE);
+  
+  try {
+    // Read the current cache
+    let cachedData = [];
+    console.log('[updateCacheWithNewPost] Checking if cache file exists...');
+    if (fs.existsSync(CACHE_FILE)) {
+      console.log('[updateCacheWithNewPost] Cache file exists, reading...');
+      const fileContent = fs.readFileSync(CACHE_FILE, 'utf8');
+      console.log('[updateCacheWithNewPost] File content length:', fileContent.length);
+      cachedData = JSON.parse(fileContent);
+      console.log('[updateCacheWithNewPost] Parsed cache data, games count:', cachedData.length);
+    } else {
+      console.log('[updateCacheWithNewPost] Cache file does not exist');
+      return;
+    }
+
+    // Find the game in the cache by gameId
+    console.log('[updateCacheWithNewPost] Looking for game with ID:', gameId);
+    const gameIndex = cachedData.findIndex(game => {
+      console.log('[updateCacheWithNewPost] Checking game:', { id: game.id, name: game.name });
+      return game.id === gameId;
+    });
+
+    console.log('[updateCacheWithNewPost] Game index found:', gameIndex);
+
+    if (gameIndex === -1) {
+      console.warn(`[updateCacheWithNewPost] Game not found in cache: ${gameId}`);
+      console.log('[updateCacheWithNewPost] Available games:', cachedData.map(g => ({ id: g.id, name: g.name })));
+      return;
+    }
+
+    // Add the new post to the game
+    const game = cachedData[gameIndex];
+    console.log('[updateCacheWithNewPost] Found game, current posts count:', game.posts?.length || 0);
+    
+    if (!game.posts) {
+      game.posts = [];
+    }
+    
+    // Add new post at the beginning (most recent first)
+    game.posts.unshift(newPost);
+    console.log('[updateCacheWithNewPost] New posts count:', game.posts.length);
+
+    // Update the cache
+    console.log('[updateCacheWithNewPost] Writing cache file...');
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cachedData, null, 2));
+    console.log(`[updateCacheWithNewPost] Successfully updated cache with new post for game ${gameId}`);
+  } catch (error) {
+    console.error('[updateCacheWithNewPost] Error updating cache:', error);
+    console.error('[updateCacheWithNewPost] Error stack:', error.stack);
+    throw error;
+  }
+}
 
 async function airtableRequest(path, options = {}) {
   const url = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${path}`;

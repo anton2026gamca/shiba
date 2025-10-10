@@ -11,6 +11,7 @@ const AIRTABLE_USERS_TABLE = process.env.AIRTABLE_USERS_TABLE || 'Users';
 const AIRTABLE_GAMES_TABLE = process.env.AIRTABLE_GAMES_TABLE || 'Games';
 const AIRTABLE_POSTS_TABLE = process.env.AIRTABLE_POSTS_TABLE || 'Posts';
 const AIRTABLE_PLAYS_TABLE = process.env.AIRTABLE_PLAYS_TABLE || 'Plays';
+const AIRTABLE_FEEDBACK_TABLE = process.env.AIRTABLE_FEEDBACK_TABLE || 'GameFeedback';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
@@ -86,6 +87,9 @@ export default async function handler(req, res) {
     // Fetch plays for this game
     const plays = await fetchPlaysForGame(sanitizedGameName, sanitizedSlackId);
 
+    // Fetch feedback for this game
+    const feedback = await fetchFeedbackForGame(sanitizedGameName, sanitizedSlackId);
+
     // Explicitly select only the fields we want to expose (defense in depth)
     const allowedFields = [
       'Name', 'Description', 'Thumbnail', 'Playable URL', 'GitHubURL', 'GithubURL',
@@ -125,6 +129,8 @@ export default async function handler(req, res) {
       posts,
       plays,
       playsCount: plays.length,
+      feedback,
+      feedbackCount: feedback.length,
     };
 
     return res.status(200).json(game);
@@ -406,4 +412,87 @@ async function fetchPlaysForGame(gameName, creatorSlackId) {
   );
 
   return playersWithProfiles;
+}
+
+async function fetchFeedbackForGame(gameName, gameSlackId) {
+  // console.log('[getGame] fetchFeedbackForGame gameName:', gameName, 'gameSlackId:', gameSlackId);
+  
+  // Escape the values for the formula
+  const gameNameEscaped = safeEscapeFormulaString(gameName);
+  const gameSlackIdEscaped = safeEscapeFormulaString(gameSlackId);
+  
+  // First, try filtering server-side for performance
+  const tryServerFilter = async () => {
+    const formula = `AND({gameName} = "${gameNameEscaped}", {gameSlackId} = "${gameSlackIdEscaped}")`;
+    const params = new URLSearchParams();
+    params.set('pageSize', '100');
+    params.set('filterByFormula', formula);
+    params.set('sort[0][field]', 'Created At');
+    params.set('sort[0][direction]', 'desc');
+    
+    const url = `${encodeURIComponent(AIRTABLE_FEEDBACK_TABLE)}?${params.toString()}`;
+    const page = await airtableRequest(url, { method: 'GET' });
+    const records = Array.isArray(page?.records) ? page.records : [];
+    // console.log(`[getGame] server filter feedback count for game ${gameName}:`, records.length);
+    return records;
+  };
+
+  let records = await tryServerFilter();
+  if (!records || records.length === 0) {
+    // Fallback: fetch all pages and filter in code
+    let allRecords = [];
+    let offset;
+    do {
+      const params = new URLSearchParams();
+      params.set('pageSize', '100');
+      if (offset) params.set('offset', offset);
+      const url = `${encodeURIComponent(AIRTABLE_FEEDBACK_TABLE)}?${params.toString()}`;
+      const page = await airtableRequest(url, { method: 'GET' });
+      const pageRecords = (page?.records || []).filter((rec) => {
+        return rec.fields?.gameName === gameName && rec.fields?.gameSlackId === gameSlackId;
+      });
+      allRecords = allRecords.concat(pageRecords);
+      offset = page?.offset;
+    } while (offset);
+    // console.log(`[getGame] fallback client-filter feedback count for game ${gameName}:`, allRecords.length);
+    records = allRecords;
+  }
+
+  // Sort newest first using "Created At"
+  records.sort((a, b) => {
+    const ad = new Date(a?.fields?.['Created At'] || a?.createdTime || 0).getTime();
+    const bd = new Date(b?.fields?.['Created At'] || b?.createdTime || 0).getTime();
+    return bd - ad;
+  });
+
+  return records.map((rec) => {
+    // Handle messageCreatorSlack - it might be an array or string
+    const messageCreatorSlackRaw = rec.fields?.messageCreatorSlack;
+    const messageCreatorSlack = Array.isArray(messageCreatorSlackRaw) 
+      ? messageCreatorSlackRaw[0] || '' 
+      : (messageCreatorSlackRaw || '');
+    
+    // Handle gameName - it might be an array or string
+    const gameNameRaw = rec.fields?.gameName;
+    const gameName = Array.isArray(gameNameRaw) 
+      ? gameNameRaw[0] || '' 
+      : (gameNameRaw || '');
+    
+    // Handle gameSlackId - it might be an array or string
+    const gameSlackIdRaw = rec.fields?.gameSlackId;
+    const gameSlackId = Array.isArray(gameSlackIdRaw) 
+      ? gameSlackIdRaw[0] || '' 
+      : (gameSlackIdRaw || '');
+    
+    return {
+      id: rec.id,
+      messageCreatorSlack: messageCreatorSlack,
+      StarRanking: rec.fields?.StarRanking || 0,
+      message: rec.fields?.message || '',
+      createdAt: rec.fields?.['Created At'] || rec.createdTime || '',
+      messageCreatorBadges: Array.isArray(rec.fields?.messageCreatorBadges) ? rec.fields.messageCreatorBadges : [],
+      gameName: gameName,
+      gameSlackId: gameSlackId,
+    };
+  });
 }

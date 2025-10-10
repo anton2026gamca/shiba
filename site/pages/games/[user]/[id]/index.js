@@ -6,7 +6,877 @@ import fs from 'fs';
 import path from 'path';
 
 const PlayGameComponent = dynamic(() => import('@/components/utils/playGameComponent'), { ssr: false });
-const PostAttachmentRenderer = dynamic(() => import('@/components/utils/PostAttachmentRenderer'), { ssr: false });
+
+// Journal Post Renderer - renders post content without profile header
+        function CommentsSection({ token, commentText, setCommentText, commentStarRating, setCommentStarRating, isSubmittingComment, setIsSubmittingComment, feedback, gameData, onCommentSubmitted }) {
+  const [feedbackWithProfiles, setFeedbackWithProfiles] = useState([]);
+
+  // Fetch profile data for feedback creators
+  useEffect(() => {
+    console.log('[CommentsSection] Received feedback:', feedback);
+    if (!feedback || feedback.length === 0) {
+      console.log('[CommentsSection] No feedback to display');
+      setFeedbackWithProfiles([]);
+      return;
+    }
+
+    console.log('[CommentsSection] Fetching profiles for', feedback.length, 'comments');
+    const fetchProfiles = async () => {
+      const profilesWithData = await Promise.all(
+        feedback.map(async (comment) => {
+          if (!comment.messageCreatorSlack) {
+            return { ...comment, displayName: 'Anonymous', profileImage: null };
+          }
+
+          try {
+            const response = await fetch(`/api/slackProfiles?slackId=${encodeURIComponent(comment.messageCreatorSlack)}`);
+            const profileData = await response.json().catch(() => ({}));
+            
+            return {
+              ...comment,
+              displayName: profileData.displayName || comment.messageCreatorSlack,
+              profileImage: profileData.image || null
+            };
+          } catch (error) {
+            console.error(`Error fetching profile for ${comment.messageCreatorSlack}:`, error);
+            return {
+              ...comment,
+              displayName: comment.messageCreatorSlack,
+              profileImage: null
+            };
+          }
+        })
+      );
+      
+      setFeedbackWithProfiles(profilesWithData);
+    };
+
+    fetchProfiles();
+  }, [feedback]);
+  return (
+    <div style={{
+      width: "100%",
+      maxWidth: "800px",
+      border: "1px solid rgba(0, 0, 0, 0.18)",
+      borderRadius: "10px",
+      background: "rgba(255, 255, 255, 0.8)",
+      padding: "16px",
+      marginTop: "16px"
+    }}>
+      <h3 style={{
+        fontSize: '16px',
+        fontWeight: 'bold',
+        marginBottom: '12px'
+      }}>
+        Comments
+      </h3>
+      
+      {/* Comment Input */}
+      <div style={{ marginBottom: '16px' }}>
+        {/* Text area */}
+        <textarea
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          placeholder="Leave a comment..."
+          style={{
+            width: "100%",
+            minHeight: "80px",
+            resize: "vertical",
+            fontSize: "14px",
+            boxSizing: "border-box",
+            padding: "10px",
+            outline: "none",
+            border: "1px solid rgba(0, 0, 0, 0.18)",
+            borderRadius: "10px 10px 0 0",
+            background: "rgba(255, 255, 255, 0.75)",
+            fontFamily: "inherit"
+          }}
+        />
+
+        {/* Star rating and button container */}
+        <div className="comment-actions" style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "8px",
+          background: "white",
+          border: "1px solid rgba(0, 0, 0, 0.18)",
+          borderTop: "1px solid rgba(0, 0, 0, 0.18)",
+          marginTop: "-6px",
+          borderRadius: "0 0 10px 10px",
+          flexWrap: "wrap",
+          gap: "8px"
+        }}>
+          {/* Star Rating */}
+          <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+            {Array.from({ length: 5 }, (_, index) => {
+              const starNumber = index + 1;
+              const isSelected = starNumber <= commentStarRating;
+              
+              return (
+                <button
+                  key={starNumber}
+                  onClick={() => setCommentStarRating(starNumber)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer"
+                  }}
+                >
+                  <img
+                    src="/SpeedyShibaShipper.png"
+                    alt={`${starNumber} star`}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      opacity: isSelected ? 1.0 : 0.1,
+                      transition: "opacity 0.2s ease"
+                    }}
+                  />
+                </button>
+              );
+            })}
+            <span style={{ marginLeft: "8px", fontSize: "14px", color: "#666" }}>
+              {commentStarRating > 0 ? `${commentStarRating} star${commentStarRating > 1 ? 's' : ''}` : "Select rating"}
+            </span>
+          </div>
+
+                  <button
+                    onClick={async () => {
+                      if (!token) {
+                        alert("Please login to comment");
+                        return;
+                      }
+                      if (commentStarRating === 0) {
+                        alert("Please select a star rating");
+                        return;
+                      }
+                      if (!gameData || !gameData.name || !gameData.slackId) {
+                        alert("Game data not available");
+                        return;
+                      }
+                      
+                      setIsSubmittingComment(true);
+                      
+                      try {
+                        const response = await fetch('/api/CreateGameFeedback', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            token,
+                            gameName: gameData.name,
+                            gameSlackId: gameData.slackId,
+                            message: commentText.trim(),
+                            starRanking: commentStarRating
+                          })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (response.ok && result.ok) {
+                          // Clear the form
+                          setCommentText('');
+                          setCommentStarRating(0);
+                          
+                          // Add the new comment to the local state immediately for real-time update
+                          if (onCommentSubmitted && result.feedback) {
+                            onCommentSubmitted(result.feedback);
+                          }
+                        } else {
+                          alert('Failed to submit comment: ' + (result.message || 'Unknown error'));
+                        }
+                      } catch (error) {
+                        console.error('Error submitting comment:', error);
+                        alert('Error submitting comment: ' + error.message);
+                      } finally {
+                        setIsSubmittingComment(false);
+                      }
+                    }}
+            disabled={isSubmittingComment || !commentText.trim() || commentStarRating === 0}
+            style={{
+              appearance: "none",
+              border: "0",
+              background: isSubmittingComment || !commentText.trim() || commentStarRating === 0 ? "#ccc" : "linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)",
+              color: "#fff",
+              borderRadius: "10px",
+              padding: "10px 16px",
+              cursor: isSubmittingComment || !commentText.trim() || commentStarRating === 0 ? "not-allowed" : "pointer",
+              fontWeight: "800",
+              fontSize: "13px",
+              fontFamily: "inherit",
+              opacity: isSubmittingComment || !commentText.trim() || commentStarRating === 0 ? 0.5 : 1
+            }}
+          >
+            {isSubmittingComment ? "Posting..." : "Post Comment"}
+          </button>
+        </div>
+      </div>
+
+              {/* Display existing feedback */}
+              {feedbackWithProfiles && feedbackWithProfiles.length > 0 ? (
+                <div style={{ marginTop: '16px' }}>
+                  {feedbackWithProfiles.map((comment, index) => (
+                    <div key={comment.id || index} style={{ marginBottom: index < feedbackWithProfiles.length - 1 ? '16px' : '0' }}>
+                      {/* Divider line between comments */}
+                      {index > 0 && (
+                        <div style={{
+                          height: '1px',
+                          background: 'rgba(0, 0, 0, 0.1)',
+                          margin: '16px 0'
+                        }} />
+                      )}
+                      
+                      {/* Comment header with profile info */}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '10px', 
+                        marginBottom: '8px',
+                        fontSize: '12px'
+                      }}>
+                        <div style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 6,
+                          border: '1px solid rgba(0,0,0,0.18)',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundColor: '#fff',
+                          backgroundImage: comment.profileImage ? `url(${comment.profileImage})` : 'none',
+                        }} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <strong>{comment.displayName || comment.messageCreatorSlack || 'Anonymous'}</strong>
+                            {/* Display badges */}
+                            {Array.isArray(comment.messageCreatorBadges) && comment.messageCreatorBadges.map((badge, badgeIndex) => {
+                              // Map badge names to correct image paths based on PostAttachmentRenderer.js
+                              const getBadgeImagePath = (badgeName) => {
+                                switch (badgeName) {
+                                  case 'Speedy Shiba Shipper': return '/SpeedyShibaShipper.png';
+                                  case 'Super Subtle Shiba': return '/SuperSubtleShiba.png';
+                                  case 'Shomato': return '/shomato.png';
+                                  case 'Shiba Showreel Submitter': return '/ShibaShowreel.png';
+                                  case 'Stargazer': return '/Stargazer.png';
+                                  case 'Shiba Pie': return '/PieBadge.svg';
+                                  case 'Twin Shark': return '/TwinShark.png';
+                                  case 'Akito Lover': return '/AkitoLover.png';
+                                  case 'Shiba Sushi': return '/ShibaSushi.png';
+                                  case 'Umbrella Badge': return '/UmbrellaBadge.png';
+                                  case 'Shiba Fox': return '/ShibaFox.png';
+                                  case 'ChefsCircle': return '/ChefsCircle.png';
+                                  case 'House Of Mine': return '/HouseOfMine.png';
+                                  case 'Bug Crusher': return '/BugCrusher.png';
+                                  case 'Fist Of Fury': return '/FistOfFurry.png';
+                                  case 'Be Cool': return '/BeCool.png';
+                                  case 'Chaotic Dice': return '/ChaoticDice.gif';
+                                  case 'Shiba Friendship': return '/ShibaFriendship.png';
+                                  case 'CARRR': return '/CARRR.png';
+                                  case 'Space Head': return '/Space-Head.png';
+                                  case 'Gastly Badge': return '/gastly.png';
+                                  case 'Shiba Axtro Ship': return '/axtro.png';
+                                  case 'Speedy Shiba Racer': return '/ShibaRacer.svg';
+                                  case 'Fish Keychain': return '/fishGif.gif';
+                                  case 'Shiba Omelette': return '/ShibaEgg.png';
+                                  case 'Shadow Merger': return '/shadow.gif';
+                                  case 'Fatty Frog': return '/fatFrog.gif';
+                                  case 'Shiba As Gundam': return '/ShibaAsGundam.png';
+                                  case 'Shiba Radio': return '/Note_Block_animate.gif';
+                                  case 'Randomness': return '/randomness.gif';
+                                  case 'Nature': return '/tree.svg';
+                                  case 'Daydream': return '/daydream.png';
+                                  case 'Yapper': return '/Yapper.gif';
+                                  default: return `/${badgeName.replace(/\s+/g, '')}.png`;
+                                }
+                              };
+
+                              return (
+                                <div key={badgeIndex} style={{ position: 'relative', display: 'inline-block' }}>
+                                  <img
+                                    src={getBadgeImagePath(badge)}
+                                    alt={badge}
+                                    style={{
+                                      width: 16,
+                                      height: 16,
+                                      cursor: 'pointer',
+                                      transition: 'transform 0.2s ease-out, border 0.2s ease-out, background-color 0.2s ease-out',
+                                      border: '1px dotted transparent',
+                                      borderRadius: '3px',
+                                      backgroundColor: 'transparent',
+                                      objectFit: 'contain'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.transform = 'scale(1.1)';
+                                      e.target.style.border = '1px dotted #999';
+                                      e.target.style.backgroundColor = 'white';
+                                      setTimeout(() => {
+                                        e.target.style.transform = 'scale(1)';
+                                      }, 200);
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.transform = 'scale(1)';
+                                      e.target.style.border = '1px dotted transparent';
+                                      e.target.style.backgroundColor = 'transparent';
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            fontSize: '11px', 
+                            opacity: 0.6, 
+                            marginTop: '2px'
+                          }}>
+                            {/* Star rating display */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              {Array.from({ length: 5 }, (_, starIndex) => {
+                                const starNumber = starIndex + 1;
+                                const isSelected = starNumber <= (comment.StarRanking || comment.starRanking || 0);
+                                
+                                return (
+                                  <img
+                                    key={starNumber}
+                                    src="/SpeedyShibaShipper.png"
+                                    alt={`${starNumber} star`}
+                                    style={{
+                                      width: 12,
+                                      height: 12,
+                                      opacity: isSelected ? 1.0 : 1.0,
+                                      filter: isSelected ? 'none' : 'grayscale(100%) brightness(0.3)',
+                                      transition: "filter 0.2s ease"
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <span>●</span>
+                            <span>
+                              {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                month: '2-digit',
+                                day: '2-digit',
+                                year: '2-digit'
+                              }) : ''}
+                            </span>
+                            <span>
+                              {comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                              }) : ''}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Comment content */}
+                      <div style={{ 
+                        marginLeft: '34px',
+                        fontSize: '14px',
+                        lineHeight: '1.4',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {comment.message}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#666', fontSize: '14px' }}>No comments currently</p>
+              )}
+    </div>
+  );
+}
+
+function JournalPostRenderer({ content, attachments, playLink, gameName, thumbnailUrl, slackId, createdAt, badges, HoursSpent, gamePageUrl, postType, timelapseVideoId, githubImageLink, timeScreenshotId, hoursSpent, minutesSpent, timeSpentOnAsset, gitChanges, user, id }) {
+  const [expandedCommits, setExpandedCommits] = useState({});
+  
+  // Calculate timeSpentOnAsset from hoursSpent and minutesSpent if not provided
+  const calculatedTimeSpentOnAsset = timeSpentOnAsset || (hoursSpent && minutesSpent ? hoursSpent + (minutesSpent / 60) : 0);
+  
+  // Prefer explicit PlayLink field provided by API
+  let playHref = typeof playLink === 'string' && playLink.trim() ? playLink.trim() : null;
+
+  // If attachments contain a text/plain with a play URL, fallback (rare)
+  if (!playHref && Array.isArray(attachments)) {
+    const txt = attachments.find((a) => (a?.type || a?.contentType || "").startsWith("text/"));
+    if (txt && typeof txt.url === "string") {
+      playHref = txt.url;
+    }
+  }
+
+  let gameId = '';
+  if (playHref) {
+    try {
+      const path = playHref.startsWith('http') ? new URL(playHref).pathname : playHref;
+      const m = /\/play\/([^\/?#]+)/.exec(path);
+      gameId = m && m[1] ? decodeURIComponent(m[1]) : '';
+    } catch (_) {
+      gameId = '';
+    }
+  }
+
+  // Utility: classify attachment kind using MIME and filename extension
+  const classifyKind = (att) => {
+    const rawType = String(att?.type || att?.contentType || '').toLowerCase();
+    const filename = String(att?.filename || '');
+    let ext = '';
+
+    if (filename && filename.includes('.')) {
+      ext = filename.split('.').pop().toLowerCase();
+    }
+    else if (att?.url) {
+      try {
+        const u = new URL(att.url, 'https://dummy');
+        const p = u.pathname || '';
+        if (p.includes('.')) {
+          ext = p.split('.').pop().toLowerCase();
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    const imageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
+    const videoExts = new Set(['mp4', 'webm', 'mov', 'm4v', 'avi', 'mkv', 'mpg', 'mpeg']);
+    const audioExts = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']);
+
+    if (rawType.startsWith('image/') || imageExts.has(ext)) return 'image';
+    if (rawType.startsWith('video/') || videoExts.has(ext)) return 'video';
+    if (rawType.startsWith('audio/') || audioExts.has(ext)) return 'audio';
+
+    if (rawType === 'application/octet-stream' || !rawType) {
+      if (imageExts.has(ext)) return 'image';
+      if (videoExts.has(ext)) return 'video';
+      if (audioExts.has(ext)) return 'audio';
+    }
+
+    return 'other';
+  };
+
+  const isArtlog = postType === 'artlog' || (timelapseVideoId && githubImageLink && calculatedTimeSpentOnAsset > 0);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 12, paddingBottom: 12 }}>
+      {/* Timestamp and hours */}
+      {createdAt && (
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, fontSize: 12, opacity: 0.6, alignItems: 'center' }}>
+          {timeSpentOnAsset
+            ? (
+              <>
+                <span style={{ fontWeight: 600 }}>
+                  {`${Math.floor(timeSpentOnAsset)}h${Math.round((timeSpentOnAsset % 1) * 60)}m`}
+                </span>
+                <span style={{ fontSize: 8 }}>●</span>
+              </>
+            )
+            : (HoursSpent && HoursSpent > 0 && Math.floor((HoursSpent % 1) * 60) > 0 && (
+              <>
+                <span style={{ fontWeight: 600 }}>
+                  {Math.floor(HoursSpent) > 0 ? `${Math.floor(HoursSpent)}hr ` : ''}{Math.round((HoursSpent % 1) * 60)}min
+                </span>
+                <span style={{ fontSize: 8 }}>●</span>
+              </>
+            ))
+          }
+          <span>
+            {new Date(createdAt).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })}
+          </span>
+          <span>
+            {new Date(createdAt).toLocaleDateString('en-US', {
+              month: '2-digit',
+              day: '2-digit',
+              year: '2-digit'
+            })}
+          </span>
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ whiteSpace: 'pre-wrap' }}>{content || ''}</div>
+
+      {/* Artlog-specific rendering */}
+      {isArtlog && (
+        <div style={{ marginTop: '8px' }}>
+          {/* Timelapse Video */}
+          {timelapseVideoId && (
+            <div style={{ marginBottom: '12px' }}>
+              <video
+                src={timelapseVideoId}
+                controls
+                playsInline
+                style={{
+                  width: '100%',
+                  maxHeight: '300px',
+                  borderRadius: '8px',
+                  background: '#000'
+                }}
+              />
+            </div>
+          )}
+          
+          {/* GitHub Image Link - styled like git commits */}
+          {githubImageLink && (
+            <div style={{ marginBottom: '12px' }}>
+              <a
+                href={githubImageLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  backgroundColor: '#f1f3f5',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#24292e',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                  border: '1px solid #d0d7de'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e9ecef';
+                  e.currentTarget.style.borderColor = '#adb5bd';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f1f3f5';
+                  e.currentTarget.style.borderColor = '#d0d7de';
+                }}
+              >
+                <img 
+                  src="/githubIcon.svg" 
+                  alt="GitHub" 
+                  style={{ 
+                    width: '14px', 
+                    height: '14px',
+                    display: 'block',
+                    opacity: 0.6
+                  }} 
+                />
+                <span style={{ fontWeight: '500' }}>View on GitHub</span>
+              </a>
+            </div>
+          )}
+          
+          {/* Time Screenshot - styled like git commits */}
+          {timeScreenshotId && (
+            <div style={{ marginBottom: '12px' }}>
+              <a
+                href={typeof timeScreenshotId === 'string' ? timeScreenshotId : timeScreenshotId?.[0]?.url || ''}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  backgroundColor: '#f1f3f5',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#24292e',
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                  border: '1px solid #d0d7de'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e9ecef';
+                  e.currentTarget.style.borderColor = '#adb5bd';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f1f3f5';
+                  e.currentTarget.style.borderColor = '#d0d7de';
+                }}
+              >
+                <img 
+                  src="/clock.svg" 
+                  alt="Time" 
+                  style={{ 
+                    width: '14px', 
+                    height: '14px',
+                    display: 'block',
+                    opacity: 0.6
+                  }} 
+                />
+                <span style={{ fontWeight: '500' }}>Time Screenshot</span>
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Game embed */}
+      {gameId && (
+        <PlayGameComponent
+          gameId={gameId}
+          gameName={gameName}
+          thumbnailUrl={thumbnailUrl}
+          animatedBackground={''}
+          token={null}
+          onPlayCreated={() => {}}
+          gamePageUrl={gamePageUrl}
+          compact={false}
+          isFromMainPage={false}
+        />
+      )}
+
+      {/* Attachments */}
+      {Array.isArray(attachments) && attachments.length > 0 && (() => {
+        const media = attachments.filter((att) => {
+          const kind = classifyKind(att);
+          return kind === 'image' || kind === 'video';
+        });
+        const mediaCount = media.length;
+        const columns = Math.max(1, Math.min(mediaCount, 3));
+        const imageMax = Math.max(160, Math.floor(480 / columns));
+        const videoMax = Math.max(200, Math.floor(540 / columns));
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>
+            {attachments.map((att, idx) => {
+              const url = att?.url;
+              const kind = classifyKind(att);
+              if (!url) return null;
+              if (kind === 'image') {
+                return (
+                  <img
+                    key={att.id || idx}
+                    src={url}
+                    alt={att.filename || ''}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: imageMax,
+                      objectFit: 'contain',
+                      border: '1px solid #ddd',
+                      borderRadius: 8,
+                      background: '#fff',
+                    }}
+                  />
+                );
+              }
+              if (kind === 'video') {
+                return (
+                  <video
+                    key={att.id || idx}
+                    src={url}
+                    controls
+                    playsInline
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: videoMax,
+                      borderRadius: 8,
+                      background: '#000',
+                    }}
+                  />
+                );
+              }
+              if (kind === 'audio') {
+                return (
+                  <div key={att.id || idx} style={{ gridColumn: columns > 1 ? `span ${columns}` : 'auto' }}>
+                    <audio src={url} controls style={{ width: '100%' }} />
+                  </div>
+                );
+              }
+              return (
+                <a
+                  key={att.id || idx}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  style={{ fontSize: 12, gridColumn: columns > 1 ? `span ${columns}` : 'auto' }}
+                >
+                  {att.filename || url}
+                </a>
+              );
+            })}
+          </div>
+        );
+      })()}
+
+      {/* Git Changes */}
+      {gitChanges && gitChanges.commits && gitChanges.commits.length > 0 && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+          marginTop: '12px'
+        }}>
+          {gitChanges.commits.map((commit, commitIndex) => {
+            const totalAdditions = commit.files?.reduce((sum, f) => sum + (f.additions || 0), 0) || 0;
+            const totalDeletions = commit.files?.reduce((sum, f) => sum + (f.deletions || 0), 0) || 0;
+            const isExpanded = expandedCommits[commitIndex];
+            
+            const sortedFiles = commit.files ? [...commit.files].sort((a, b) => {
+              const aTotal = (a.additions || 0) + (a.deletions || 0);
+              const bTotal = (b.additions || 0) + (b.deletions || 0);
+              return bTotal - aTotal;
+            }) : [];
+            
+            return (
+              <div key={commitIndex} style={{ width: '100%' }}>
+                <div
+                  onClick={() => setExpandedCommits(prev => ({ ...prev, [commitIndex]: !prev[commitIndex] }))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    backgroundColor: '#f1f3f5',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    color: '#24292e',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: '1px solid #d0d7de',
+                    userSelect: 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#e9ecef';
+                    e.currentTarget.style.borderColor = '#adb5bd';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f3f5';
+                    e.currentTarget.style.borderColor = '#d0d7de';
+                  }}
+                >
+                  {commit.github_link && (
+                    <a
+                      href={commit.github_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textDecoration: 'none',
+                        marginRight: '4px',
+                        padding: '3px',
+                        borderRadius: '4px',
+                        border: '1px solid transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+                        e.currentTarget.style.border = '1px solid rgba(0, 0, 0, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.border = '1px solid transparent';
+                      }}
+                    >
+                      <img 
+                        src="/githubIcon.svg" 
+                        alt="GitHub" 
+                        style={{ 
+                          width: '14px', 
+                          height: '14px',
+                          display: 'block',
+                          opacity: 0.6
+                        }} 
+                      />
+                    </a>
+                  )}
+                  <span style={{ 
+                    fontWeight: '500',
+                    wordBreak: 'break-word'
+                  }}>
+                    {commit.message}
+                  </span>
+                  {totalAdditions > 0 && (
+                    <span style={{ color: '#28a745', fontWeight: '600', fontSize: '11px' }}>
+                      +{totalAdditions}
+                    </span>
+                  )}
+                  {totalDeletions > 0 && (
+                    <span style={{ color: '#d73a49', fontWeight: '600', fontSize: '11px' }}>
+                      -{totalDeletions}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '10px', opacity: 0.6 }}>
+                    {isExpanded ? '▼' : '▶'}
+                  </span>
+                </div>
+                
+                {isExpanded && sortedFiles.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginTop: '6px',
+                    marginLeft: '8px',
+                    paddingLeft: '8px',
+                    borderLeft: '2px solid #e9ecef'
+                  }}>
+                    {sortedFiles.map((file, fileIndex) => (
+                      <a
+                        key={fileIndex}
+                        href={file.github_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 6px',
+                          backgroundColor: '#dfe6e9',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          color: '#2d3436',
+                          textDecoration: 'none',
+                          transition: 'all 0.15s ease',
+                          border: '1px solid rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#b2bec3';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#dfe6e9';
+                        }}
+                      >
+                        <span style={{ 
+                          fontFamily: 'monospace',
+                          wordBreak: 'break-word'
+                        }}>
+                          {file.filepath.split('/').pop()}
+                        </span>
+                        {!file.is_binary && (
+                          <>
+                            {file.additions > 0 && (
+                              <span style={{ color: '#28a745', fontWeight: '600' }}>
+                                +{file.additions}
+                              </span>
+                            )}
+                            {file.deletions > 0 && (
+                              <span style={{ color: '#d73a49', fontWeight: '600' }}>
+                                -{file.deletions}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Feedback Modal Component
 function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
@@ -303,10 +1173,29 @@ export default function GamesPage({ gameData, error }) {
   const { user, id, LastReviewed } = router.query;
   const [loading, setLoading] = useState(false);
   const [selectedView, setSelectedView] = useState('Devlogs'); // 'Devlogs' | 'Artlogs' | 'Plays'
+  
+  // Debug: log gameData to check if feedback is present
+  useEffect(() => {
+    console.log('[GamesPage] gameData:', gameData);
+    console.log('[GamesPage] feedback:', gameData?.feedback);
+    console.log('[GamesPage] posts:', gameData?.posts?.length);
+  }, [gameData]);
   const [hoveredPlayer, setHoveredPlayer] = useState(null);
   const [selectedVersion, setSelectedVersion] = useState('latest');
   const [isPawed, setIsPawed] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [expandedDevlogs, setExpandedDevlogs] = useState(false);
+  const [expandedArtlogs, setExpandedArtlogs] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [commentStarRating, setCommentStarRating] = useState(0);
+  const [localFeedback, setLocalFeedback] = useState([]);
+
+  // Handle new comment submission
+  const handleCommentSubmitted = (newComment) => {
+    // Add the new comment to the local feedback state
+    setLocalFeedback(prev => [newComment, ...prev]);
+  };
 
   // Get token from localStorage
   const [token, setToken] = useState(null);
@@ -885,8 +1774,174 @@ export default function GamesPage({ gameData, error }) {
                 const { recentPosts, olderPosts } = groupPostsByLastReviewed(devlogPosts);
                 const recentTimeSpent = calculateTotalTimeSpent(recentPosts, false);
                 
-                return devlogPosts.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: "32px" }}>
+                return devlogPosts.length > 0 ? (() => {
+                  // Collect all unique badges from all devlog posts
+                  const allBadges = new Set();
+                  devlogPosts.forEach(post => {
+                    if (Array.isArray(post.badges)) {
+                      post.badges.forEach(badge => allBadges.add(badge));
+                    }
+                  });
+                  const uniqueBadges = Array.from(allBadges);
+
+                  return (
+                  <div style={{
+                    border: "1px solid rgba(0, 0, 0, 0.18)",
+                    borderRadius: "10px",
+                    background: "rgba(255, 255, 255, 0.8)",
+                    padding: "16px",
+                    paddingBottom: "32px"
+                  }}>
+                    {/* Profile header - shown once */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid rgba(0,0,0,0.18)',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundColor: '#fff',
+                          backgroundImage: slackProfile?.image ? `url(${slackProfile.image})` : 'none',
+                        }}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12 }}>
+                        <strong>{slackProfile?.displayName || user}</strong>
+                        {uniqueBadges.map((badge) => {
+                          const badgeConfig = {
+                            'Speedy Shiba Shipper': { img: '/SpeedyShibaShipper.png', bg: '#FFD1A3', border: '#F5994B' },
+                            'Super Subtle Shiba': { img: '/SuperSubtleShiba.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'Shomato': { img: '/shomato.png', bg: '#FFE6E6', border: '#DC3545' },
+                            'Shiba Showreel Submitter': { img: '/ShibaShowreel.png', bg: '#FFF3CD', border: '#FFC107' },
+                            'Stargazer': { img: '/Stargazer.png', bg: '#E6F3FF', border: '#4A90E2' },
+                            'Shiba Pie': { img: '/PieBadge.svg', bg: '#FFF8E1', border: '#FFB74D' },
+                            'Twin Shark': { img: '/TwinShark.png', bg: '#FFE6F0', border: '#E91E63' },
+                            'Akito Lover': { img: '/AkitoLover.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Shiba Sushi': { img: '/ShibaSushi.png', bg: '#E8EAF6', border: '#3F51B5' },
+                            'Umbrella Badge': { img: '/UmbrellaBadge.png', bg: '#F5F5F5', border: '#616161' },
+                            'Shiba Fox': { img: '/ShibaFox.png', bg: '#E3F2FD', border: '#2196F3' },
+                            'ChefsCircle': { img: '/ChefsCircle.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'House Of Mine': { img: '/HouseOfMine.png', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Bug Crusher': { img: '/BugCrusher.png', bg: '#FFEBEE', border: '#F44336' },
+                            'Fist Of Fury': { img: '/FistOfFurry.png', bg: '#FFF3E0', border: '#FF9800' },
+                            'Be Cool': { img: '/BeCool.png', bg: '#E0F2F1', border: '#009688' },
+                            'Chaotic Dice': { img: '/ChaoticDice.gif', bg: '#FCE4EC', border: '#E91E63' },
+                            'Shiba Friendship': { img: '/ShibaFriendship.png', bg: '#FFF8E1', border: '#FFC107' },
+                            'CARRR': { img: '/CARRR.png', bg: '#FFEBEE', border: '#F44336' },
+                            'Space Head': { img: '/Space-Head.png', bg: '#E3F2FD', border: '#2196F3' },
+                            'Gastly Badge': { img: '/gastly.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Shiba Axtro Ship': { img: '/axtro.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'Speedy Shiba Racer': { img: '/ShibaRacer.svg', bg: '#FFF3E0', border: '#FF9800' },
+                            'Fish Keychain': { img: '/fishGif.gif', bg: '#E0F2F1', border: '#009688' },
+                            'Shiba Omelette': { img: '/ShibaEgg.png', bg: '#FFF8E1', border: '#FFC107' },
+                            'Shadow Merger': { img: '/shadow.gif', bg: '#F5F5F5', border: '#616161' },
+                            'Fatty Frog': { img: '/fatFrog.gif', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Shiba As Gundam': { img: '/ShibaAsGundam.png', bg: '#E8EAF6', border: '#3F51B5' },
+                            'Shiba Radio': { img: '/Note_Block_animate.gif', bg: '#FFF3E0', border: '#FF9800' },
+                            'Randomness': { img: '/randomness.gif', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Nature': { img: '/tree.svg', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Daydream': { img: '/daydream.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Yapper': { img: '/Yapper.gif', bg: '#FFF3E0', border: '#FF9800' }
+                          };
+                          
+                          const config = badgeConfig[badge];
+                          if (!config) return null;
+                          
+                          return (
+                            <div key={badge} style={{ position: 'relative', display: 'inline-block' }}>
+                              <img
+                                src={config.img}
+                                alt={badge}
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.2s ease-out, border 0.2s ease-out, background-color 0.2s ease-out',
+                                  border: '1px dotted transparent',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'transparent'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.transform = 'scale(1.1)';
+                                  e.target.style.border = '1px dotted #999';
+                                  e.target.style.backgroundColor = 'white';
+                                  setTimeout(() => {
+                                    e.target.style.transform = 'scale(1)';
+                                  }, 200);
+                                  const popup = e.target.nextSibling;
+                                  if (popup) {
+                                    popup.style.display = 'block';
+                                    setTimeout(() => {
+                                      popup.style.opacity = '1';
+                                      popup.style.transform = 'translateX(-50%) scale(1)';
+                                    }, 10);
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.transform = 'scale(1)';
+                                  e.target.style.border = '1px dotted transparent';
+                                  e.target.style.backgroundColor = 'transparent';
+                                  const popup = e.target.nextSibling;
+                                  if (popup) {
+                                    popup.style.opacity = '0';
+                                    popup.style.transform = 'translateX(-50%) scale(0)';
+                                    setTimeout(() => {
+                                      popup.style.display = 'none';
+                                    }, 200);
+                                  }
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '100%',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  backgroundColor: config.bg,
+                                  border: `1px solid ${config.border}`,
+                                  borderRadius: '4px',
+                                  padding: '4px 6px',
+                                  fontSize: '6px',
+                                  fontWeight: 'bold',
+                                  color: '#333',
+                                  whiteSpace: 'nowrap',
+                                  zIndex: 1000,
+                                  display: 'none',
+                                  marginBottom: '0px',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                  opacity: 0,
+                                  transformOrigin: 'center bottom',
+                                  transition: 'all 0.2s ease-out'
+                                }}
+                              >
+                                {badge}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Posts container with expandable view */}
+                    <div style={{
+                      overflow: 'hidden',
+                      maxHeight: expandedDevlogs ? 'none' : '900px',
+                      position: 'relative'
+                    }}>
+                      {/* Gradient overlay when collapsed */}
+                      {!expandedDevlogs && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: '200px',
+                          background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%)',
+                          pointerEvents: 'none',
+                          zIndex: 1
+                        }} />
+                      )}
                     {/* Recent posts (since LastReviewed) */}
                     {recentPosts.length > 0 && (
                       <div style={{
@@ -908,32 +1963,27 @@ export default function GamesPage({ gameData, error }) {
                           <span>New since last review</span>
                           <span>{recentTimeSpent.toFixed(2)} hours</span>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                           {recentPosts.map((p, pIdx) => (
-                            <div key={p.id || pIdx} className="moment-card" style={{ 
-                              position: "relative",
-                              border: "2px solid #ff0000",
-                              borderRadius: "10px",
-                              background: "rgba(255, 255, 255, 0.9)",
-                              padding: "12px"
-                            }}>
-                              <PostAttachmentRenderer
+                            <div key={p.id || pIdx}>
+                              {pIdx > 0 && (
+                                <div style={{
+                                  height: "1px",
+                                  background: "rgba(255, 0, 0, 0.2)",
+                                  margin: "16px 0"
+                                }} />
+                              )}
+                              <JournalPostRenderer
                                 content={p.content}
                                 attachments={p.attachments}
                                 playLink={p.PlayLink}
                                 gameName={gameData?.name || ""}
                                 thumbnailUrl={gameData?.thumbnailUrl || ""}
-                                token={null}
                                 slackId={user}
                                 createdAt={p.createdAt}
                                 badges={p.badges}
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                                 gitChanges={p.GitChanges}
-                                onPlayCreated={(play) => {
-                                  // Play created by playGameComponent.js
-                                  console.log('Play created:', play);
-                                }}
                                 postType={p.postType}
                                 timelapseVideoId={p.timelapseVideoId}
                                 githubImageLink={p.githubImageLink}
@@ -941,42 +1991,36 @@ export default function GamesPage({ gameData, error }) {
                                 hoursSpent={p.hoursSpent || p.HoursSpent || 0}
                                 timeSpentOnAsset={p.timeSpentOnAsset || 0}
                                 minutesSpent={p.minutesSpent}
-                                postId={p.PostID}
-                                currentUserProfile={null}
-                                onTimeUpdated={() => {}} // No-op for public pages
+                                user={user}
+                                id={id}
                               />
                             </div>
                           ))}
-                        </div>
                       </div>
                     )}
                     
                     {/* Older posts */}
                     {olderPosts.map((p, pIdx) => (
-                      <div key={p.id || pIdx} className="moment-card" style={{ 
-                        position: "relative",
-                        border: "1px solid rgba(0, 0, 0, 0.18)",
-                        borderRadius: "10px",
-                        background: "rgba(255, 255, 255, 0.8)",
-                        padding: "12px"
-                      }}>
-                        <PostAttachmentRenderer
+                        <div key={p.id || pIdx}>
+                          {(pIdx > 0 || recentPosts.length > 0) && (
+                            <div style={{
+                              height: "1px",
+                              background: "rgba(0, 0, 0, 0.1)",
+                              margin: "16px 0"
+                            }} />
+                          )}
+                          <JournalPostRenderer
                           content={p.content}
                           attachments={p.attachments}
                           playLink={p.PlayLink}
                           gameName={gameData?.name || ""}
                           thumbnailUrl={gameData?.thumbnailUrl || ""}
-                          token={null}
                           slackId={user}
                           createdAt={p.createdAt}
                           badges={p.badges}
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                           gitChanges={p.GitChanges}
-                          onPlayCreated={(play) => {
-                            // Play created by playGameComponent.js
-                            console.log('Play created:', play);
-                          }}
                           postType={p.postType}
                           timelapseVideoId={p.timelapseVideoId}
                           githubImageLink={p.githubImageLink}
@@ -984,14 +2028,33 @@ export default function GamesPage({ gameData, error }) {
                           hoursSpent={p.hoursSpent || p.HoursSpent || 0}
                           timeSpentOnAsset={p.timeSpentOnAsset || 0}
                           minutesSpent={p.minutesSpent}
-                          postId={p.PostID}
-                          currentUserProfile={null}
-                          onTimeUpdated={() => {}} // No-op for public pages
+                            user={user}
+                            id={id}
                         />
                       </div>
                     ))}
                   </div>
-                ) : (
+
+                    {/* Expand/Collapse toggle */}
+                    <p
+                      onClick={() => setExpandedDevlogs(!expandedDevlogs)}
+                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                      style={{
+                        textAlign: 'center',
+                        color: '#666',
+                        fontSize: '12px',
+                        marginTop: '8px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      {expandedDevlogs ? 'Collapse Journey' : 'Expand Journey'}
+                    </p>
+                  </div>
+                  );
+                })() : (
                   <div style={{width: "100%", border: "1px solid #000", padding: 16}}>
                     <p>No devlog posts yet</p>
                   </div>
@@ -1001,6 +2064,7 @@ export default function GamesPage({ gameData, error }) {
                   <p>No posts yet</p>
                 </div>
               )}
+
             </>
           )}
 
@@ -1012,8 +2076,174 @@ export default function GamesPage({ gameData, error }) {
                 const { recentPosts, olderPosts } = groupPostsByLastReviewed(artlogPosts);
                 const recentTimeSpent = calculateTotalTimeSpent(recentPosts, true);
                 
-                return artlogPosts.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: "32px" }}>
+                return artlogPosts.length > 0 ? (() => {
+                  // Collect all unique badges from all artlog posts
+                  const allBadges = new Set();
+                  artlogPosts.forEach(post => {
+                    if (Array.isArray(post.badges)) {
+                      post.badges.forEach(badge => allBadges.add(badge));
+                    }
+                  });
+                  const uniqueBadges = Array.from(allBadges);
+
+                  return (
+                  <div style={{
+                    border: "1px solid rgba(0, 0, 0, 0.18)",
+                    borderRadius: "10px",
+                    background: "rgba(255, 255, 255, 0.8)",
+                    padding: "16px",
+                    paddingBottom: "32px"
+                  }}>
+                    {/* Profile header - shown once */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid rgba(0,0,0,0.18)',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundColor: '#fff',
+                          backgroundImage: slackProfile?.image ? `url(${slackProfile.image})` : 'none',
+                        }}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 12 }}>
+                        <strong>{slackProfile?.displayName || user}</strong>
+                        {uniqueBadges.map((badge) => {
+                          const badgeConfig = {
+                            'Speedy Shiba Shipper': { img: '/SpeedyShibaShipper.png', bg: '#FFD1A3', border: '#F5994B' },
+                            'Super Subtle Shiba': { img: '/SuperSubtleShiba.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'Shomato': { img: '/shomato.png', bg: '#FFE6E6', border: '#DC3545' },
+                            'Shiba Showreel Submitter': { img: '/ShibaShowreel.png', bg: '#FFF3CD', border: '#FFC107' },
+                            'Stargazer': { img: '/Stargazer.png', bg: '#E6F3FF', border: '#4A90E2' },
+                            'Shiba Pie': { img: '/PieBadge.svg', bg: '#FFF8E1', border: '#FFB74D' },
+                            'Twin Shark': { img: '/TwinShark.png', bg: '#FFE6F0', border: '#E91E63' },
+                            'Akito Lover': { img: '/AkitoLover.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Shiba Sushi': { img: '/ShibaSushi.png', bg: '#E8EAF6', border: '#3F51B5' },
+                            'Umbrella Badge': { img: '/UmbrellaBadge.png', bg: '#F5F5F5', border: '#616161' },
+                            'Shiba Fox': { img: '/ShibaFox.png', bg: '#E3F2FD', border: '#2196F3' },
+                            'ChefsCircle': { img: '/ChefsCircle.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'House Of Mine': { img: '/HouseOfMine.png', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Bug Crusher': { img: '/BugCrusher.png', bg: '#FFEBEE', border: '#F44336' },
+                            'Fist Of Fury': { img: '/FistOfFurry.png', bg: '#FFF3E0', border: '#FF9800' },
+                            'Be Cool': { img: '/BeCool.png', bg: '#E0F2F1', border: '#009688' },
+                            'Chaotic Dice': { img: '/ChaoticDice.gif', bg: '#FCE4EC', border: '#E91E63' },
+                            'Shiba Friendship': { img: '/ShibaFriendship.png', bg: '#FFF8E1', border: '#FFC107' },
+                            'CARRR': { img: '/CARRR.png', bg: '#FFEBEE', border: '#F44336' },
+                            'Space Head': { img: '/Space-Head.png', bg: '#E3F2FD', border: '#2196F3' },
+                            'Gastly Badge': { img: '/gastly.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Shiba Axtro Ship': { img: '/axtro.png', bg: '#E8F4FD', border: '#4A90E2' },
+                            'Speedy Shiba Racer': { img: '/ShibaRacer.svg', bg: '#FFF3E0', border: '#FF9800' },
+                            'Fish Keychain': { img: '/fishGif.gif', bg: '#E0F2F1', border: '#009688' },
+                            'Shiba Omelette': { img: '/ShibaEgg.png', bg: '#FFF8E1', border: '#FFC107' },
+                            'Shadow Merger': { img: '/shadow.gif', bg: '#F5F5F5', border: '#616161' },
+                            'Fatty Frog': { img: '/fatFrog.gif', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Shiba As Gundam': { img: '/ShibaAsGundam.png', bg: '#E8EAF6', border: '#3F51B5' },
+                            'Shiba Radio': { img: '/Note_Block_animate.gif', bg: '#FFF3E0', border: '#FF9800' },
+                            'Randomness': { img: '/randomness.gif', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Nature': { img: '/tree.svg', bg: '#E8F5E8', border: '#4CAF50' },
+                            'Daydream': { img: '/daydream.png', bg: '#F3E5F5', border: '#9C27B0' },
+                            'Yapper': { img: '/Yapper.gif', bg: '#FFF3E0', border: '#FF9800' }
+                          };
+                          
+                          const config = badgeConfig[badge];
+                          if (!config) return null;
+                          
+                          return (
+                            <div key={badge} style={{ position: 'relative', display: 'inline-block' }}>
+                              <img
+                                src={config.img}
+                                alt={badge}
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  cursor: 'pointer',
+                                  transition: 'transform 0.2s ease-out, border 0.2s ease-out, background-color 0.2s ease-out',
+                                  border: '1px dotted transparent',
+                                  borderRadius: '4px',
+                                  backgroundColor: 'transparent'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.transform = 'scale(1.1)';
+                                  e.target.style.border = '1px dotted #999';
+                                  e.target.style.backgroundColor = 'white';
+                                  setTimeout(() => {
+                                    e.target.style.transform = 'scale(1)';
+                                  }, 200);
+                                  const popup = e.target.nextSibling;
+                                  if (popup) {
+                                    popup.style.display = 'block';
+                                    setTimeout(() => {
+                                      popup.style.opacity = '1';
+                                      popup.style.transform = 'translateX(-50%) scale(1)';
+                                    }, 10);
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.transform = 'scale(1)';
+                                  e.target.style.border = '1px dotted transparent';
+                                  e.target.style.backgroundColor = 'transparent';
+                                  const popup = e.target.nextSibling;
+                                  if (popup) {
+                                    popup.style.opacity = '0';
+                                    popup.style.transform = 'translateX(-50%) scale(0)';
+                                    setTimeout(() => {
+                                      popup.style.display = 'none';
+                                    }, 200);
+                                  }
+                                }}
+                              />
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '100%',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  backgroundColor: config.bg,
+                                  border: `1px solid ${config.border}`,
+                                  borderRadius: '4px',
+                                  padding: '4px 6px',
+                                  fontSize: '6px',
+                                  fontWeight: 'bold',
+                                  color: '#333',
+                                  whiteSpace: 'nowrap',
+                                  zIndex: 1000,
+                                  display: 'none',
+                                  marginBottom: '0px',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                  opacity: 0,
+                                  transformOrigin: 'center bottom',
+                                  transition: 'all 0.2s ease-out'
+                                }}
+                              >
+                                {badge}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Posts container with expandable view */}
+                    <div style={{
+                      overflow: 'hidden',
+                      maxHeight: expandedArtlogs ? 'none' : '900px',
+                      position: 'relative'
+                    }}>
+                      {/* Gradient overlay when collapsed */}
+                      {!expandedArtlogs && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: '200px',
+                          background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%)',
+                          pointerEvents: 'none',
+                          zIndex: 1
+                        }} />
+                      )}
                     {/* Recent posts (since LastReviewed) */}
                     {recentPosts.length > 0 && (
                       <div style={{
@@ -1035,32 +2265,27 @@ export default function GamesPage({ gameData, error }) {
                           <span>New since last review</span>
                           <span>{recentTimeSpent.toFixed(2)} hours</span>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                           {recentPosts.map((p, pIdx) => (
-                            <div key={p.id || pIdx} className="moment-card" style={{ 
-                              position: "relative",
-                              border: "2px solid #ff0000",
-                              borderRadius: "10px",
-                              background: "rgba(255, 255, 255, 0.9)",
-                              padding: "12px"
-                            }}>
-                              <PostAttachmentRenderer
+                            <div key={p.id || pIdx}>
+                              {pIdx > 0 && (
+                                <div style={{
+                                  height: "1px",
+                                  background: "rgba(255, 0, 0, 0.2)",
+                                  margin: "16px 0"
+                                }} />
+                              )}
+                              <JournalPostRenderer
                                 content={p.content}
                                 attachments={p.attachments}
                                 playLink={p.PlayLink}
                                 gameName={gameData?.name || ""}
                                 thumbnailUrl={gameData?.thumbnailUrl || ""}
-                                token={null}
                                 slackId={user}
                                 createdAt={p.createdAt}
                                 badges={p.badges}
                                 HoursSpent={p.HoursSpent}
                                 gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                                 gitChanges={p.GitChanges}
-                                onPlayCreated={(play) => {
-                                  // Play created by playGameComponent.js
-                                  console.log('Play created:', play);
-                                }}
                                 postType={p.postType}
                                 timelapseVideoId={p.timelapseVideoId}
                                 githubImageLink={p.githubImageLink}
@@ -1068,42 +2293,36 @@ export default function GamesPage({ gameData, error }) {
                                 hoursSpent={p.hoursSpent || p.HoursSpent || 0}
                                 timeSpentOnAsset={p.timeSpentOnAsset || 0}
                                 minutesSpent={p.minutesSpent}
-                                postId={p.PostID}
-                                currentUserProfile={null}
-                                onTimeUpdated={() => {}} // No-op for public pages
+                                user={user}
+                                id={id}
                               />
                             </div>
                           ))}
-                        </div>
                       </div>
                     )}
                     
                     {/* Older posts */}
                     {olderPosts.map((p, pIdx) => (
-                      <div key={p.id || pIdx} className="moment-card" style={{ 
-                        position: "relative",
-                        border: "1px solid rgba(0, 0, 0, 0.18)",
-                        borderRadius: "10px",
-                        background: "rgba(255, 255, 255, 0.8)",
-                        padding: "12px"
-                      }}>
-                        <PostAttachmentRenderer
+                        <div key={p.id || pIdx}>
+                          {(pIdx > 0 || recentPosts.length > 0) && (
+                            <div style={{
+                              height: "1px",
+                              background: "rgba(0, 0, 0, 0.1)",
+                              margin: "16px 0"
+                            }} />
+                          )}
+                          <JournalPostRenderer
                           content={p.content}
                           attachments={p.attachments}
                           playLink={p.PlayLink}
                           gameName={gameData?.name || ""}
                           thumbnailUrl={gameData?.thumbnailUrl || ""}
-                          token={null}
                           slackId={user}
                           createdAt={p.createdAt}
                           badges={p.badges}
                           HoursSpent={p.HoursSpent}
                           gamePageUrl={`https://shiba.hackclub.com/games/${user}/${encodeURIComponent(gameData?.name || id)}`}
                           gitChanges={p.GitChanges}
-                          onPlayCreated={(play) => {
-                            // Play created by playGameComponent.js
-                            console.log('Play created:', play);
-                          }}
                           postType={p.postType}
                           timelapseVideoId={p.timelapseVideoId}
                           githubImageLink={p.githubImageLink}
@@ -1111,14 +2330,33 @@ export default function GamesPage({ gameData, error }) {
                           hoursSpent={p.hoursSpent || p.HoursSpent || 0}
                           timeSpentOnAsset={p.timeSpentOnAsset || 0}
                           minutesSpent={p.minutesSpent}
-                          postId={p.PostID}
-                          currentUserProfile={null}
-                          onTimeUpdated={() => {}} // No-op for public pages
+                            user={user}
+                            id={id}
                         />
                       </div>
                     ))}
                   </div>
-                ) : (
+
+                    {/* Expand/Collapse toggle */}
+                    <p
+                      onClick={() => setExpandedArtlogs(!expandedArtlogs)}
+                      onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                      onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                      style={{
+                        textAlign: 'center',
+                        color: '#666',
+                        fontSize: '12px',
+                        marginTop: '8px',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      {expandedArtlogs ? 'Collapse Journey' : 'Expand Journey'}
+                    </p>
+                  </div>
+                  );
+                })() : (
                   <div style={{width: "100%", border: "1px solid #000", padding: 16}}>
                     <p>No artlog posts yet</p>
                   </div>
@@ -1128,6 +2366,7 @@ export default function GamesPage({ gameData, error }) {
                   <p>No posts yet</p>
                 </div>
               )}
+
             </>
           )}
 
@@ -1205,6 +2444,22 @@ export default function GamesPage({ gameData, error }) {
             </>
           )}
         </div>
+
+        {/* Comments Section - appears for both Devlogs and Artlogs */}
+        {gameData && (
+          <CommentsSection
+            token={token}
+            commentText={commentText}
+            setCommentText={setCommentText}
+            commentStarRating={commentStarRating}
+            setCommentStarRating={setCommentStarRating}
+            isSubmittingComment={isSubmittingComment}
+            setIsSubmittingComment={setIsSubmittingComment}
+            feedback={[...localFeedback, ...(gameData?.feedback || [])]}
+            gameData={gameData}
+            onCommentSubmitted={handleCommentSubmitted}
+          />
+        )}
         </div>
       </div>
 
@@ -1244,6 +2499,18 @@ export default function GamesPage({ gameData, error }) {
         
         .stamp-image {
           transition: opacity 0.3s ease;
+        }
+
+        /* Comment actions responsive layout */
+        @media (max-width: 768px) {
+          .comment-actions {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          
+          .comment-actions button {
+            width: 100%;
+          }
         }
       `}</style>
     </>

@@ -6,6 +6,7 @@ const AIRTABLE_USERS_TABLE = process.env.AIRTABLE_USERS_TABLE || 'Users';
 const AIRTABLE_GAMES_TABLE = process.env.AIRTABLE_GAMES_TABLE || 'Games';
 const AIRTABLE_POSTS_TABLE = process.env.AIRTABLE_POSTS_TABLE || 'Posts';
 const AIRTABLE_PLAYS_TABLE = process.env.AIRTABLE_PLAYS_TABLE || 'Plays';
+const AIRTABLE_FEEDBACK_TABLE = process.env.AIRTABLE_FEEDBACK_TABLE || 'GameFeedback';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 // Rate limiting (more lenient for build processes)
@@ -76,6 +77,10 @@ export default async function handler(req, res) {
       const allPlays = await fetchAllPlays();
       // console.log(`Fetched ${allPlays.length} plays`);
       
+      // Fetch all feedback
+      const allFeedback = await fetchAllFeedback();
+      // console.log(`Fetched ${allFeedback.length} feedback records`);
+      
       // Fetch all users for play data
       const allUsers = await fetchAllUsers();
       // console.log(`Fetched ${allUsers.length} users`);
@@ -83,6 +88,7 @@ export default async function handler(req, res) {
       // Create lookup maps
       const postsByGameId = new Map();
       const playsByGameId = new Map();
+      const feedbackByGame = new Map();
       const usersById = new Map();
       
       // Organize posts by game ID
@@ -112,6 +118,18 @@ export default async function handler(req, res) {
       // Create user lookup map
       allUsers.forEach(user => {
         usersById.set(user.id, user);
+      });
+      
+      // Organize feedback by game (using gameName + gameSlackId as key)
+      allFeedback.forEach(feedbackRec => {
+        const transformed = transformFeedback(feedbackRec);
+        if (transformed.gameName && transformed.gameSlackId) {
+          const gameKey = `${transformed.gameSlackId}|${transformed.gameName}`;
+          if (!feedbackByGame.has(gameKey)) {
+            feedbackByGame.set(gameKey, []);
+          }
+          feedbackByGame.get(gameKey).push(transformed);
+        }
       });
       
       // Fetch profile data for all unique game creators
@@ -187,6 +205,10 @@ export default async function handler(req, res) {
         // Get creator profile data
         const creatorProfile = creatorProfiles.get(slackId) || { displayName: '', image: '' };
 
+        // Get feedback for this game
+        const gameKey = `${slackId}|${gameName}`;
+        const feedback = feedbackByGame.get(gameKey) || [];
+
         return {
           id: rec.id,
           name: gameName,
@@ -217,6 +239,8 @@ export default async function handler(req, res) {
           posts,
           plays,
           playsCount: plays.length,
+          feedback,
+          feedbackCount: feedback.length,
           slackId,
           ShibaLink: fields.ShibaLink || '',
           creatorDisplayName: creatorProfile.displayName,
@@ -669,6 +693,25 @@ async function fetchAllUsers() {
   return allRecords;
 }
 
+async function fetchAllFeedback() {
+  let allRecords = [];
+  let offset;
+  
+  do {
+    const params = new URLSearchParams();
+    params.set('pageSize', '100');
+    if (offset) params.set('offset', offset);
+    params.set('sort[0][field]', 'Created At');
+    params.set('sort[0][direction]', 'desc');
+    
+    const page = await airtableRequest(`${encodeURIComponent(AIRTABLE_FEEDBACK_TABLE)}?${params.toString()}`, { method: 'GET' });
+    allRecords = allRecords.concat(page?.records || []);
+    offset = page?.offset;
+  } while (offset);
+  
+  return allRecords;
+}
+
 function transformPost(rec) {
   return {
     id: rec.id,
@@ -761,5 +804,36 @@ function transformPlay(play, usersById) {
     slackId,
     displayName: '', // Will be fetched from cachet if needed
     image: '', // Will be fetched from cachet if needed
+  };
+}
+
+function transformFeedback(rec) {
+  // Handle messageCreatorSlack - it might be an array or string
+  const messageCreatorSlackRaw = rec.fields?.messageCreatorSlack;
+  const messageCreatorSlack = Array.isArray(messageCreatorSlackRaw) 
+    ? messageCreatorSlackRaw[0] || '' 
+    : (messageCreatorSlackRaw || '');
+  
+  // Handle gameName - it might be an array or string
+  const gameNameRaw = rec.fields?.gameName;
+  const gameName = Array.isArray(gameNameRaw) 
+    ? gameNameRaw[0] || '' 
+    : (gameNameRaw || '');
+  
+  // Handle gameSlackId - it might be an array or string
+  const gameSlackIdRaw = rec.fields?.gameSlackId;
+  const gameSlackId = Array.isArray(gameSlackIdRaw) 
+    ? gameSlackIdRaw[0] || '' 
+    : (gameSlackIdRaw || '');
+  
+  return {
+    id: rec.id,
+    messageCreatorSlack: messageCreatorSlack,
+    StarRanking: rec.fields?.StarRanking || 0,
+    message: rec.fields?.message || '',
+    createdAt: rec.fields?.['Created At'] || rec.createdTime || '',
+    messageCreatorBadges: Array.isArray(rec.fields?.messageCreatorBadges) ? rec.fields.messageCreatorBadges : [],
+    gameName: gameName,
+    gameSlackId: gameSlackId,
   };
 }

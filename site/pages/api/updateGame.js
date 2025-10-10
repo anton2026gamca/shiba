@@ -1,10 +1,13 @@
 import { isValidUrl, safeEscapeFormulaString } from './utils/security.js';
+import fs from 'fs';
+import path from 'path';
 
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || "appg245A41MWc6Rej";
 const AIRTABLE_USERS_TABLE = process.env.AIRTABLE_USERS_TABLE || "Users";
 const AIRTABLE_GAMES_TABLE = process.env.AIRTABLE_GAMES_TABLE || "Games";
 const AIRTABLE_API_BASE = "https://api.airtable.com/v0";
+const CACHE_FILE = path.join(process.cwd(), '.next/games-cache.json');
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -326,6 +329,19 @@ export default async function handler(req, res) {
         : "",
     };
 
+    // Update the gameStore cache with the updated game data
+    console.log('[updateGame] Attempting to update cache...');
+    console.log('[updateGame] gameId:', gameId);
+    console.log('[updateGame] result:', result);
+    
+    try {
+      await updateCacheWithGameChanges(gameId, result);
+      console.log('[updateGame] Cache update successful');
+    } catch (cacheError) {
+      console.error('[updateGame] Error updating cache:', cacheError);
+      // Don't fail the request if cache update fails
+    }
+
     return res.status(200).json({ ok: true, game: result });
   } catch (error) {
     // eslint-disable-next-line no-console
@@ -341,6 +357,66 @@ export const config = {
     },
   },
 };
+
+async function updateCacheWithGameChanges(gameId, updatedGameData) {
+  console.log('[updateCacheWithGameChanges] Starting cache update...');
+  console.log('[updateCacheWithGameChanges] CACHE_FILE path:', CACHE_FILE);
+  
+  try {
+    // Read the current cache
+    let cachedData = [];
+    console.log('[updateCacheWithGameChanges] Checking if cache file exists...');
+    if (fs.existsSync(CACHE_FILE)) {
+      console.log('[updateCacheWithGameChanges] Cache file exists, reading...');
+      const fileContent = fs.readFileSync(CACHE_FILE, 'utf8');
+      console.log('[updateCacheWithGameChanges] File content length:', fileContent.length);
+      cachedData = JSON.parse(fileContent);
+      console.log('[updateCacheWithGameChanges] Parsed cache data, games count:', cachedData.length);
+    } else {
+      console.log('[updateCacheWithGameChanges] Cache file does not exist');
+      return;
+    }
+
+    // Find the game in the cache by gameId
+    console.log('[updateCacheWithGameChanges] Looking for game with ID:', gameId);
+    const gameIndex = cachedData.findIndex(game => {
+      console.log('[updateCacheWithGameChanges] Checking game:', { id: game.id, name: game.name });
+      return game.id === gameId;
+    });
+
+    console.log('[updateCacheWithGameChanges] Game index found:', gameIndex);
+
+    if (gameIndex === -1) {
+      console.warn(`[updateCacheWithGameChanges] Game not found in cache: ${gameId}`);
+      console.log('[updateCacheWithGameChanges] Available games:', cachedData.map(g => ({ id: g.id, name: g.name })));
+      return;
+    }
+
+    // Update the game data in the cache
+    const game = cachedData[gameIndex];
+    console.log('[updateCacheWithGameChanges] Found game, updating fields...');
+    
+    // Update only the fields that are present in updatedGameData
+    if (updatedGameData.name !== undefined) game.name = updatedGameData.name;
+    if (updatedGameData.description !== undefined) game.description = updatedGameData.description;
+    if (updatedGameData.thumbnailUrl !== undefined) game.thumbnailUrl = updatedGameData.thumbnailUrl;
+    if (updatedGameData.animatedBackground !== undefined) game.animatedBackground = updatedGameData.animatedBackground;
+    if (updatedGameData.GitHubURL !== undefined) game.GitHubURL = updatedGameData.GitHubURL;
+    if (updatedGameData.ShowreelLink !== undefined) game.ShowreelLink = updatedGameData.ShowreelLink;
+    if (updatedGameData.HackatimeProjects !== undefined) game.HackatimeProjects = updatedGameData.HackatimeProjects;
+    
+    console.log('[updateCacheWithGameChanges] Updated game data in cache');
+
+    // Update the cache
+    console.log('[updateCacheWithGameChanges] Writing cache file...');
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cachedData, null, 2));
+    console.log(`[updateCacheWithGameChanges] Successfully updated cache for game ${gameId}`);
+  } catch (error) {
+    console.error('[updateCacheWithGameChanges] Error updating cache:', error);
+    console.error('[updateCacheWithGameChanges] Error stack:', error.stack);
+    throw error;
+  }
+}
 
 async function airtableRequest(path, options = {}) {
   const url = `${AIRTABLE_API_BASE}/${AIRTABLE_BASE_ID}/${path}`;

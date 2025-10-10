@@ -1,6 +1,7 @@
 const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
 const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID || 'appg245A41MWc6Rej';
 const AIRTABLE_SHOP_TABLE = process.env.AIRTABLE_SHOP_TABLE || 'Shop';
+const AIRTABLE_SERVICES_TABLE = process.env.AIRTABLE_SERVICES_TABLE || 'Services';
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
@@ -14,9 +15,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const shopItems = await fetchAllShopItems();
+    const [shopItems, serviceItems] = await Promise.all([
+      fetchAllShopItems(),
+      fetchAllServiceItems()
+    ]);
     
-    return res.status(200).json(shopItems);
+    // Combine both datasets
+    const allItems = [...shopItems, ...serviceItems];
+    
+    return res.status(200).json(allItems);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('GetShopItems error:', error);
@@ -69,5 +76,55 @@ async function fetchAllShopItems() {
     InitialStock: record.fields?.InitialStock || record.fields?.stockAvailable || 0,
     InStock: record.fields?.['In Stock'] || record.fields?.stockAvailable || 0,
     Images: record.fields?.Images || [],
+    source: 'shop', // Mark source as shop
   }));
+}
+
+async function fetchAllServiceItems() {
+  let allRecords = [];
+  let offset;
+  
+  do {
+    const params = new URLSearchParams();
+    params.set('pageSize', '100');
+    if (offset) params.set('offset', offset);
+
+    const page = await airtableRequest(`${encodeURIComponent(AIRTABLE_SERVICES_TABLE)}?${params.toString()}`, {
+      method: 'GET',
+    });
+    
+    const pageRecords = page?.records || [];
+    allRecords = allRecords.concat(pageRecords);
+    offset = page?.offset;
+  } while (offset);
+
+  return allRecords.map((record) => {
+    // Handle portfolioPieces - it's a comma-separated string
+    let portfolioPieces = [];
+    const portfolioField = record.fields?.portfolioPieces || record.fields?.PortfolioPieces || '';
+    if (typeof portfolioField === 'string' && portfolioField.trim()) {
+      portfolioPieces = portfolioField.split(',').map(url => url.trim()).filter(url => url);
+    } else if (Array.isArray(portfolioField)) {
+      portfolioPieces = portfolioField;
+    }
+    
+    // Handle priceStructures - could be array or string
+    let priceStructures = [record.fields?.['price structure']];
+
+    
+    return {
+      id: record.id,
+      slackId: record.fields?.slackId || record.fields?.['slack id'] || record.fields?.SlackId || '',
+      type: record.fields?.type || record.fields?.Type || '',
+      Name: record.fields?.name || record.fields?.Name || '',
+      Description: record.fields?.description || record.fields?.Description || '',
+      priceStructures,
+      portfolioPieces,
+      source: 'services', // Mark source as services
+      // Keep Cost/InStock null or 0 for compatibility with shop items
+      Cost: null,
+      InStock: null,
+      Images: [],
+    };
+  });
 }
