@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 const RadarChart = dynamic(() => import('@/components/RadarChart'), { ssr: false });
@@ -28,10 +29,10 @@ export default function PlaytestTicket({ playtest, onPlaytestClick }) {
 
   // ref for feedback container to measure height so we can have nice size transitions
   // I'm not sure if this is the cleanest way to do this, but most of the app is a vibe-coded mess so whatever
-  const feedbackRef = React.useRef(null);
+  const feedbackRef = useRef(null);
   const [feedbackHeight, setFeedbackHeight] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (playtest.status === 'Complete' && playtest.feedback && feedbackRef.current) {
       setFeedbackHeight(feedbackRef.current.scrollHeight);
     }
