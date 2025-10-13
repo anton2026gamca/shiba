@@ -4,6 +4,8 @@ import json
 import subprocess
 import shutil
 import tempfile
+import signal
+import psutil
 from typing import List, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
@@ -16,6 +18,23 @@ AIRTABLE_API_KEY = os.environ.get('AIRTABLE_API_KEY')
 AIRTABLE_BASE_ID = os.environ.get('AIRTABLE_BASE_ID')
 AIRTABLE_POSTS_TABLE = 'Posts'
 AIRTABLE_API_BASE = 'https://api.airtable.com/v0'
+
+
+def cleanup_git_processes():
+    """Clean up any hanging git processes."""
+    try:
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['name'] == 'git' and proc.info['cmdline']:
+                    # Check if it's a git process that's been running too long
+                    if proc.create_time() < (datetime.now().timestamp() - 600):  # 10 minutes
+                        print(f"  Terminating hanging git process: {proc.info['pid']}")
+                        proc.terminate()
+                        proc.wait(timeout=5)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired):
+                pass
+    except Exception as e:
+        print(f"  Warning: Could not cleanup git processes: {e}")
 
 
 def airtable_request(path: str, method: str = 'GET', params: Dict = None) -> Dict[str, Any]:
@@ -76,13 +95,18 @@ def clone_repo(github_url: str, clone_dir: str) -> bool:
         print(f"  Cloning {github_url} (blobless for speed)...")
         # Use --filter=blob:none for blobless clone - gets commit history and tree structure
         # but not file contents, which are fetched on-demand. Much faster!
-        subprocess.run(
+        # Add timeout to prevent hanging processes
+        result = subprocess.run(
             ['git', 'clone', '--filter=blob:none', '--quiet', github_url, clone_dir],
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            timeout=300  # 5 minute timeout
         )
         return True
+    except subprocess.TimeoutExpired:
+        print(f"  Timeout cloning repository: {github_url}")
+        return False
     except subprocess.CalledProcessError as e:
         print(f"  Error cloning repository: {e.stderr}")
         return False
@@ -105,7 +129,8 @@ def get_commits_in_timerange(repo_dir: str, start_time: str = None, end_time: st
             cwd=repo_dir,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            timeout=120  # 2 minute timeout
         )
         
         commits = []
@@ -123,6 +148,9 @@ def get_commits_in_timerange(repo_dir: str, start_time: str = None, end_time: st
                 })
         
         return commits
+    except subprocess.TimeoutExpired:
+        print(f"  Timeout getting commits from {repo_dir}")
+        return []
     except subprocess.CalledProcessError as e:
         print(f"  Error getting commits: {e.stderr}")
         return []
@@ -137,7 +165,8 @@ def get_commit_changes(repo_dir: str, commit_hash: str, github_url: str) -> List
             cwd=repo_dir,
             capture_output=True,
             text=True,
-            check=True
+            check=True,
+            timeout=60  # 1 minute timeout
         )
         
         # Parse the GitHub URL to get owner/repo
@@ -176,6 +205,9 @@ def get_commit_changes(repo_dir: str, commit_hash: str, github_url: str) -> List
                 })
         
         return files_changed
+    except subprocess.TimeoutExpired:
+        print(f"  Timeout getting commit changes for {commit_hash}")
+        return []
     except subprocess.CalledProcessError as e:
         print(f"  Error getting commit changes: {e.stderr}")
         return []
@@ -189,6 +221,8 @@ def analyze_repo_for_posts(github_url: str, posts: List[Dict[str, Any]]) -> List
     try:
         # Clone the repository
         if not clone_repo(github_url, repo_dir):
+            # Clean up temp dir if clone fails
+            shutil.rmtree(temp_dir, ignore_errors=True)
             return posts
         
         # Process each post
@@ -338,6 +372,9 @@ def main():
     
     if not AIRTABLE_BASE_ID:
         raise ValueError("AIRTABLE_BASE_ID environment variable is not set")
+    
+    # Clean up any hanging git processes before starting
+    cleanup_git_processes()
     
     print(f"Fetching all posts from Airtable...")
     print(f"Base ID: {AIRTABLE_BASE_ID}")

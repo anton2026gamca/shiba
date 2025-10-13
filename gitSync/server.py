@@ -1,6 +1,8 @@
 import os
 import time
 import threading
+import signal
+import sys
 from datetime import datetime
 from flask import Flask, jsonify
 from dotenv import load_dotenv
@@ -11,6 +13,7 @@ from main import (
     group_posts_by_github_url,
     analyze_repo_for_posts,
     update_post_git_changes,
+    cleanup_git_processes,
     AIRTABLE_API_KEY,
     AIRTABLE_BASE_ID
 )
@@ -28,6 +31,13 @@ sync_error = None
 sync_count = 0
 
 
+def signal_handler(signum, frame):
+    """Handle shutdown signals to cleanup processes."""
+    print(f"\nReceived signal {signum}, cleaning up...")
+    cleanup_git_processes()
+    sys.exit(0)
+
+
 def perform_full_sync():
     """Perform a full sync of posts and git changes."""
     global last_sync_result, sync_error
@@ -37,6 +47,9 @@ def perform_full_sync():
     
     if not AIRTABLE_BASE_ID:
         raise ValueError("AIRTABLE_BASE_ID environment variable is not set")
+    
+    # Clean up any hanging git processes before starting
+    cleanup_git_processes()
     
     print(f"\n{'='*80}")
     print(f"Starting sync #{sync_count + 1} at {datetime.now().isoformat()}")
@@ -95,6 +108,9 @@ def perform_full_sync():
     print(f"\n{'='*80}")
     print(f"Sync complete: {repos_processed} repos, {posts_updated} posts updated")
     print(f"{'='*80}\n")
+    
+    # Clean up any hanging git processes after sync
+    cleanup_git_processes()
     
     return result
 
@@ -191,12 +207,17 @@ def root():
 
 
 if __name__ == '__main__':
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # Start continuous sync in background thread
     sync_thread = threading.Thread(target=run_continuous_sync, daemon=True)
     sync_thread.start()
     
     print(f"Starting gitSync server on port {PORT}")
     print(f"Continuous sync enabled")
+    print(f"Signal handlers registered for graceful shutdown")
     
     # Start Flask server
     app.run(host='0.0.0.0', port=PORT)
