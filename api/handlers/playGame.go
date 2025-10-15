@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"fmt"
-	"html"
+	"io"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -27,40 +30,31 @@ func MainGamePlayHandler() http.HandlerFunc {
 		// Build R2 URL
 		r2URL := fmt.Sprintf("%s/games/%s/index.html", r2PublicURL, url.PathEscape(gameId))
 		
-		log.Printf("Loading game %s from R2 via iframe: %s", gameId, r2URL)
+		log.Printf("Proxying game %s from R2: %s", gameId, r2URL)
 		
-		// Return HTML with iframe that loads the game from R2
+		// Fetch from R2
+		resp, err := http.Get(r2URL)
+		if err != nil {
+			log.Printf("Failed to fetch game from R2: %v", err)
+			http.Error(w, "Failed to load game", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			log.Printf("R2 returned non-200 status: %d", resp.StatusCode)
+			http.Error(w, "Game not found", resp.StatusCode)
+			return
+		}
+
+		// Set correct content type for HTML
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Cache-Control", "public, max-age=3600")
 		
-		htmlContent := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game: %s</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%%;
-            height: 100%%;
-            overflow: hidden;
-        }
-        iframe {
-            border: none;
-            width: 100%%;
-            height: 100%%;
-            display: block;
-        }
-    </style>
-</head>
-<body>
-    <iframe src="%s" allowfullscreen allow="gamepad; microphone; camera; autoplay"></iframe>
-</body>
-</html>`, html.EscapeString(gameId), html.EscapeString(r2URL))
-		
-		w.Write([]byte(htmlContent))
+		// Copy response body
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			log.Printf("Failed to copy response body: %v", err)
+		}
 	}
 }
 
@@ -86,9 +80,59 @@ func AssetsPlayHandler() http.HandlerFunc {
 			r2URL = fmt.Sprintf("%s/games/%s/%s", r2PublicURL, url.PathEscape(gameId), assetPath)
 		}
 		
-		log.Printf("Redirecting asset to R2: %s", r2URL)
+		log.Printf("Proxying asset from R2: %s", r2URL)
 		
-		// Assets should still redirect directly (for scripts, images, etc.)
-		http.Redirect(w, r, r2URL, http.StatusTemporaryRedirect)
+		// Fetch from R2 and proxy with correct content-type
+		resp, err := http.Get(r2URL)
+		if err != nil {
+			log.Printf("Failed to fetch asset from R2: %v", err)
+			http.Error(w, "Failed to load asset", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, "Asset not found", resp.StatusCode)
+			return
+		}
+
+		// Detect content type from file extension
+		contentType := mime.TypeByExtension(filepath.Ext(assetPath))
+		if contentType == "" {
+			// Fall back to R2's content type or octet-stream
+			contentType = resp.Header.Get("Content-Type")
+			if contentType == "" || contentType == "application/octet-stream" {
+				// Try to guess based on extension
+				ext := strings.ToLower(filepath.Ext(assetPath))
+				switch ext {
+				case ".js":
+					contentType = "application/javascript"
+				case ".css":
+					contentType = "text/css"
+				case ".png":
+					contentType = "image/png"
+				case ".jpg", ".jpeg":
+					contentType = "image/jpeg"
+				case ".gif":
+					contentType = "image/gif"
+				case ".svg":
+					contentType = "image/svg+xml"
+				case ".wasm":
+					contentType = "application/wasm"
+				case ".json":
+					contentType = "application/json"
+				default:
+					contentType = "application/octet-stream"
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		
+		// Copy response body
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			log.Printf("Failed to copy asset response: %v", err)
+		}
 	}
 }
