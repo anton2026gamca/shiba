@@ -1859,14 +1859,42 @@ function DetailView({
                                 {parts.map((part, partIndex) => {
                                   if (typeof part === 'string') {
                                     return (
-                                      <div key={partIndex} style={{ marginBottom: '8px' }}>
-                                        "{part}"
+                                      <div key={partIndex} style={{
+                                        marginBottom: '8px'
+                                      }}>
+                                        {part.split('\n').map((line, i) => (
+                                          <p key={i} style={{ marginBottom: '8px' }}>
+                                            {line}
+                                          </p>
+                                        ))}
                                       </div>
                                     );
                                   } else {
+                                    const categoryIcons = {
+                                      'Additional Feedback:': 'FeedbackAdditional.svg',
+                                      'Fun:': 'FeedbackFun.svg',
+                                      'Art:': 'FeedbackArt.svg',
+                                      'Creativity:': 'FeedbackCreativity.svg',
+                                      'Audio:': 'FeedbackAudio.svg',
+                                      'Mood:': 'FeedbackMood.svg',
+                                    }
                                     return (
-                                      <div key={partIndex} style={{ marginBottom: '8px' }}>
-                                        <strong>{part.category}</strong> {part.content}
+                                      <div key={partIndex} style={{
+                                        marginBottom: '8px',
+                                        padding: '8px 10px 0px 10px',
+                                        border: '1px solid lightgray',
+                                        borderRadius: '6px'
+                                      }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', height: '16px', marginBottom: '4px' }}>
+                                          <img src={categoryIcons[part.category] || ''} alt='' style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                          <strong>{part.category}</strong>
+                                        </div>
+                                        {part.content.split('\n').map((line, i) => (
+                                          <p key={i} style={{ marginBottom: '8px' }}>
+                                            {line}
+                                            {i < part.content.split('\n').length - 1 ? <br /> : null}
+                                          </p>
+                                        ))}
                                       </div>
                                     );
                                   }
