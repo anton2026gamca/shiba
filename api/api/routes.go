@@ -16,7 +16,7 @@ func SetupRoutes(r *chi.Mux, srv *structs.Server) {
 	r.Post("/api/uploadMiscFile", handlers.UploadMiscFileHandler(srv))
 	r.Get("/misc-file/{fileId}.*", handlers.ServeMiscFileHandler(srv))
 	r.Get("/api/misc-file/{fileId}.*", handlers.ServeMiscFileHandler(srv))
-	r.Get("/play/{gameId}", handlers.MainGamePlayHandler(srv))
-	r.Get("/play/{gameId}/*", handlers.AssetsPlayHandler(srv))
+	r.Get("/play/{gameId}", handlers.MainGamePlayHandler())
+	r.Get("/play/{gameId}/*", handlers.AssetsPlayHandler())
 	r.Get("/removeGame/{gameId}", handlers.RemoveGameHandler(srv))
 }

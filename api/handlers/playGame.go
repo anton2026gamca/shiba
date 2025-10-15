@@ -1,16 +1,17 @@
 package handlers
 
 import (
+	"fmt"
+	"html"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
-	"shiba-api/structs"
-	"shiba-api/sync"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func MainGamePlayHandler(srv *structs.Server) http.HandlerFunc {
+func MainGamePlayHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gameId := chi.URLParam(r, "gameId")
 		if gameId == "" {
@@ -18,31 +19,52 @@ func MainGamePlayHandler(srv *structs.Server) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		var filepath = "./games/" + gameId + "/index.html"
-
-		log.Printf("Serving game %s from %s", gameId, filepath)
-
-		// check if the file is present
-		if _, err := os.Stat(filepath); os.IsNotExist(err) {
-			println("File does not exist:", filepath)
-			go func() {
-				err := sync.FetchGameFromR2(srv, gameId)
-				if err != nil {
-					log.Printf("Failed to fetch game %s: %v", gameId, err)
-				} else {
-					log.Printf("Successfully fetched game %s", gameId)
-				}
-			}()
-			http.Error(w, "Game not found. The server will try to download it asap. Please try again later.", http.StatusNotFound)
+		r2PublicURL := os.Getenv("R2_PUBLIC_URL")
+		if r2PublicURL == "" {
+			r2PublicURL = "https://juice.hackclub-assets.com"
 		}
 
-		http.ServeFile(w, r, filepath)
+		// Build R2 URL
+		r2URL := fmt.Sprintf("%s/games/%s/index.html", r2PublicURL, url.PathEscape(gameId))
+		
+		log.Printf("Loading game %s from R2 via iframe: %s", gameId, r2URL)
+		
+		// Return HTML with iframe that loads the game from R2
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		
+		htmlContent := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game: %s</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%%;
+            height: 100%%;
+            overflow: hidden;
+        }
+        iframe {
+            border: none;
+            width: 100%%;
+            height: 100%%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <iframe src="%s" allowfullscreen allow="gamepad; microphone; camera; autoplay"></iframe>
+</body>
+</html>`, html.EscapeString(gameId), html.EscapeString(r2URL))
+		
+		w.Write([]byte(htmlContent))
 	}
 }
 
-func AssetsPlayHandler(srv *structs.Server) http.HandlerFunc {
+func AssetsPlayHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		gameId := chi.URLParam(r, "gameId")
 		if gameId == "" {
@@ -50,14 +72,23 @@ func AssetsPlayHandler(srv *structs.Server) http.HandlerFunc {
 			return
 		}
 
-		assetPath := chi.URLParam(r, "*")
-		if assetPath == "" {
-			var filepath = "./games/" + gameId + "/index.html"
-
-			http.ServeFile(w, r, filepath)
-		} else {
-			var filepath = "./games/" + gameId + "/" + assetPath
-			http.ServeFile(w, r, filepath)
+		r2PublicURL := os.Getenv("R2_PUBLIC_URL")
+		if r2PublicURL == "" {
+			r2PublicURL = "https://juice.hackclub-assets.com"
 		}
+
+		assetPath := chi.URLParam(r, "*")
+		var r2URL string
+		
+		if assetPath == "" {
+			r2URL = fmt.Sprintf("%s/games/%s/index.html", r2PublicURL, url.PathEscape(gameId))
+		} else {
+			r2URL = fmt.Sprintf("%s/games/%s/%s", r2PublicURL, url.PathEscape(gameId), assetPath)
+		}
+		
+		log.Printf("Redirecting asset to R2: %s", r2URL)
+		
+		// Assets should still redirect directly (for scripts, images, etc.)
+		http.Redirect(w, r, r2URL, http.StatusTemporaryRedirect)
 	}
 }

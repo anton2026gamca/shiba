@@ -3,6 +3,7 @@ package handlers
 import (
 	"archive/zip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -149,17 +150,25 @@ func GameUploadHandler(srv *structs.Server) http.HandlerFunc {
 			}
 		}(destDir, srv)
 
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		resp := struct {
-			Ok      bool   `json:"ok"`
-			GameID  string `json:"gameId"`
-			PlayURL string `json:"playUrl"`
-		}{
-			Ok:      true,
-			GameID:  id.String(),
-			PlayURL: "/play/" + id.String() + "/",
-		}
+	// Get R2 public URL for the response
+	r2PublicURL := os.Getenv("R2_PUBLIC_URL")
+	if r2PublicURL == "" {
+		r2PublicURL = "https://juice.hackclub-assets.com"
+	}
+	
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	resp := struct {
+		Ok      bool   `json:"ok"`
+		GameID  string `json:"gameId"`
+		PlayURL string `json:"playUrl"`
+		R2URL   string `json:"r2Url"`
+	}{
+		Ok:      true,
+		GameID:  id.String(),
+		PlayURL: "/play/" + id.String() + "/",
+		R2URL:   fmt.Sprintf("%s/games/%s/index.html", r2PublicURL, id.String()),
+	}
 
 		responseBytes, _ := json.Marshal(resp)
 		response := string(responseBytes)
