@@ -50,6 +50,7 @@ func MainGamePlayHandler() http.HandlerFunc {
 		// Set correct content type for HTML
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.WriteHeader(http.StatusOK)
 		
 		// Copy response body
 		if _, err := io.Copy(w, resp.Body); err != nil {
@@ -73,14 +74,17 @@ func AssetsPlayHandler() http.HandlerFunc {
 
 		assetPath := chi.URLParam(r, "*")
 		var r2URL string
+		var isIndexHTML bool
 		
 		if assetPath == "" {
 			r2URL = fmt.Sprintf("%s/games/%s/index.html", r2PublicURL, url.PathEscape(gameId))
+			isIndexHTML = true
 		} else {
 			r2URL = fmt.Sprintf("%s/games/%s/%s", r2PublicURL, url.PathEscape(gameId), assetPath)
+			isIndexHTML = false
 		}
 		
-		log.Printf("Proxying asset from R2: %s", r2URL)
+		log.Printf("Proxying asset from R2: %s (isIndexHTML: %v)", r2URL, isIndexHTML)
 		
 		// Fetch from R2 and proxy with correct content-type
 		resp, err := http.Get(r2URL)
@@ -97,38 +101,47 @@ func AssetsPlayHandler() http.HandlerFunc {
 		}
 
 		// Detect content type from file extension
-		contentType := mime.TypeByExtension(filepath.Ext(assetPath))
-		if contentType == "" {
-			// Fall back to R2's content type or octet-stream
-			contentType = resp.Header.Get("Content-Type")
-			if contentType == "" || contentType == "application/octet-stream" {
-				// Try to guess based on extension
-				ext := strings.ToLower(filepath.Ext(assetPath))
-				switch ext {
-				case ".js":
-					contentType = "application/javascript"
-				case ".css":
-					contentType = "text/css"
-				case ".png":
-					contentType = "image/png"
-				case ".jpg", ".jpeg":
-					contentType = "image/jpeg"
-				case ".gif":
-					contentType = "image/gif"
-				case ".svg":
-					contentType = "image/svg+xml"
-				case ".wasm":
-					contentType = "application/wasm"
-				case ".json":
-					contentType = "application/json"
-				default:
-					contentType = "application/octet-stream"
+		var contentType string
+		if isIndexHTML {
+			// Force text/html for index.html
+			contentType = "text/html; charset=utf-8"
+		} else {
+			contentType = mime.TypeByExtension(filepath.Ext(assetPath))
+			if contentType == "" {
+				// Fall back to R2's content type or octet-stream
+				contentType = resp.Header.Get("Content-Type")
+				if contentType == "" || contentType == "application/octet-stream" {
+					// Try to guess based on extension
+					ext := strings.ToLower(filepath.Ext(assetPath))
+					switch ext {
+					case ".js":
+						contentType = "application/javascript"
+					case ".css":
+						contentType = "text/css"
+					case ".png":
+						contentType = "image/png"
+					case ".jpg", ".jpeg":
+						contentType = "image/jpeg"
+					case ".gif":
+						contentType = "image/gif"
+					case ".svg":
+						contentType = "image/svg+xml"
+					case ".wasm":
+						contentType = "application/wasm"
+					case ".json":
+						contentType = "application/json"
+					case ".html":
+						contentType = "text/html; charset=utf-8"
+					default:
+						contentType = "application/octet-stream"
+					}
 				}
 			}
 		}
 
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Cache-Control", "public, max-age=3600")
+		w.WriteHeader(http.StatusOK)
 		
 		// Copy response body
 		if _, err := io.Copy(w, resp.Body); err != nil {
