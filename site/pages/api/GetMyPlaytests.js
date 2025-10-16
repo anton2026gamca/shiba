@@ -189,7 +189,12 @@ async function getPlaytestsForUser(userId) {
           
           if (gameData && gameData.fields) {
             gameDetails.gameName = gameData.fields.Name || '';
-            gameDetails.playableURL = gameData.fields['Playable URL'] || '';
+            // Handle playable URL - it might be an array
+            if (Array.isArray(gameData.fields['Playable URL'])) {
+              gameDetails.playableURL = gameData.fields['Playable URL'][0] || '';
+            } else {
+              gameDetails.playableURL = gameData.fields['Playable URL'] || '';
+            }
             
             // Handle thumbnail - it might be an array of attachment objects
             if (gameData.fields.Thumbnail && Array.isArray(gameData.fields.Thumbnail)) {
