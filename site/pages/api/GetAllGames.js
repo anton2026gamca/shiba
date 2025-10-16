@@ -321,11 +321,15 @@ export default async function handler(req, res) {
         return {
           id: rec.id,
           name: gameName,
+          Name: gameName, // For list.js compatibility
           gameName: gameName, // For playtest compatibility
           description: fields.Description || '',
           thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
             ? fields.Thumbnail[0].url 
             : '',
+          Thumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
+            ? fields.Thumbnail[0].url 
+            : '', // For list.js compatibility
           gameThumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
             ? fields.Thumbnail[0].url 
             : '', // For playtest compatibility
@@ -340,6 +344,7 @@ export default async function handler(req, res) {
           GitHubURL: fields?.GitHubURL || fields?.GithubURL || '',
           lastUpdated: fields?.['Last Updated'] || rec.createdTime || '',
           slackId,
+          'slack id': slackId, // For list.js compatibility
           ownerSlackId: slackId, // For playtest compatibility
           ShibaLink: fields.ShibaLink || '',
           creatorDisplayName: creatorProfile.displayName,
