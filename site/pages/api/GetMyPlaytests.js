@@ -7,6 +7,11 @@ const AIRTABLE_PLAYTESTS_TABLE = process.env.AIRTABLE_PLAYTESTS_TABLE || 'Playte
 const AIRTABLE_API_BASE = 'https://api.airtable.com/v0';
 
 export default async function handler(req, res) {
+  // Add cache-busting headers
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ message: 'Method Not Allowed' });
@@ -35,7 +40,11 @@ export default async function handler(req, res) {
     
     // console.log('Found playtests:', playtests);
     
-    return res.status(200).json({ ok: true, playtests });
+    return res.status(200).json({ 
+      ok: true, 
+      playtests,
+      timestamp: Date.now() // Cache-busting timestamp
+    });
   } catch (error) {
     console.error('GetMyPlaytests error:', error);
     return res.status(500).json({ message: 'An unexpected error occurred.' });
