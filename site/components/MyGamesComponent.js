@@ -1876,17 +1876,28 @@ function DetailView({
                                       'Art:': 'FeedbackArt.svg',
                                       'Creativity:': 'FeedbackCreativity.svg',
                                       'Audio:': 'FeedbackAudio.svg',
-                                      'Mood:': 'FeedbackMood.svg',
+                                      'Mood:': 'FeedbackMood.svg'
                                     }
                                     return (
                                       <div key={partIndex} style={{
                                         marginBottom: '8px',
                                         padding: '8px 10px 0px 10px',
-                                        border: '1px solid lightgray',
-                                        borderRadius: '6px'
+                                        border: '1px solid #ccc',
+                                        borderRadius: '4px'
                                       }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', height: '16px', marginBottom: '4px' }}>
-                                          <img src={categoryIcons[part.category] || ''} alt='' style={{ width: '16px', height: '16px', marginRight: '4px' }} />
+                                        <div style={{
+                                          height: '16px',
+                                          marginBottom: '4px',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}>
+                                          <img src={categoryIcons[part.category] || ''} style={{
+                                              width: '16px',
+                                              height: '16px',
+                                              marginRight: '4px',
+                                              filter: 'invert(0.335)'
+                                            }}
+                                          />
                                           <strong>{part.category}</strong>
                                         </div>
                                         {part.content.split('\n').map((line, i) => (
@@ -1925,7 +1936,9 @@ function DetailView({
                             fontFamily: "inherit",
                             display: "flex",
                             alignItems: "center",
-                            gap: "4px"
+                            justifyContent: "center",
+                            gap: "4px",
+                            flex: "1"
                           }}
                           onClick={async () => {
                             const newResponse = currentResponse === "Like" ? null : "Like";
@@ -1980,7 +1993,9 @@ function DetailView({
                             fontFamily: "inherit",
                             display: "flex",
                             alignItems: "center",
-                            gap: "4px"
+                            justifyContent: "center",
+                            gap: "4px",
+                            flex: "1"
                           }}
                           onClick={async () => {
                             const newResponse = currentResponse === "Dislike" ? null : "Dislike";
@@ -2033,7 +2048,9 @@ function DetailView({
                             fontFamily: "inherit",
                             display: "flex",
                             alignItems: "center",
-                            gap: "4px"
+                            justifyContent: "center",
+                            gap: "4px",
+                            flex: "1"
                           }}
                           onClick={async () => {
                             if (currentResponse === "Report") {
