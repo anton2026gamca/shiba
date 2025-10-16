@@ -2503,19 +2503,23 @@ function DetailView({
         <p style={{ fontSize: 12, opacity: 0.7 }}>
           Every 3–4 hours: post a Shiba Moment. Add a short note of what you
           added and a screenshot/GIF/video (up to 50MB).
+          <br />
+          <strong>Note:</strong> Any time above 4 hours will not be counted!
         </p>
         <br />
         <p style={{ fontSize: 12, opacity: 0.7 }}>
-          Every ~10 hours: ship a new demo. We'll try it, award play tickets
+          Max every 10 hours: ship a new demo. We'll try it, award play tickets
           based on your time, and send it to other hack clubbers in the
           community to playtest.
+          <br />
+          <strong>Note:</strong> Any time above 10 hours will not be counted!
         </p>
         <p
           style={{
             fontSize: 11,
             opacity: 0.6,
             fontStyle: "italic",
-            marginTop: 8,
+            marginTop: 16,
             marginBottom: 8,
           }}
         >
