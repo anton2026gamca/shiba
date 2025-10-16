@@ -321,20 +321,30 @@ export default async function handler(req, res) {
         return {
           id: rec.id,
           name: gameName,
+          gameName: gameName, // For playtest compatibility
           description: fields.Description || '',
           thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
             ? fields.Thumbnail[0].url 
             : '',
+          gameThumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
+            ? fields.Thumbnail[0].url 
+            : '', // For playtest compatibility
           animatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url 
             ? fields.AnimatedBackground[0].url 
             : '',
+          gameAnimatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url 
+            ? fields.AnimatedBackground[0].url 
+            : '', // For playtest compatibility
           playableURL: fields?.['Playable URL'] || '',
+          gameLink: fields?.['Playable URL'] || '', // For playtest compatibility
           GitHubURL: fields?.GitHubURL || fields?.GithubURL || '',
           lastUpdated: fields?.['Last Updated'] || rec.createdTime || '',
           slackId,
+          ownerSlackId: slackId, // For playtest compatibility
           ShibaLink: fields.ShibaLink || '',
           creatorDisplayName: creatorProfile.displayName,
           creatorImage: creatorProfile.image,
+          HoursSpent: fields?.HoursSpent || 0, // For playtest compatibility
         };
       });
 
