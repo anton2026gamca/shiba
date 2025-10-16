@@ -7,6 +7,255 @@ import path from 'path';
 
 const PlayGameComponent = dynamic(() => import('@/components/utils/playGameComponent'), { ssr: false });
 
+// Commit Graph Component - GitHub-style contribution graph
+function CommitGraph({ gameData, setSelectedView, setExpandedDevlogs }) {
+  const startDate = new Date('2025-08-18'); // Start date (Sunday)
+  const cutoffDate = new Date('2025-11-12'); // Date up until which to show dark grey
+  const today = new Date();
+  
+  // Calculate weeks since start date up to cutoff
+  const timeDiff = cutoffDate.getTime() - startDate.getTime();
+  const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+  const weeksDiff = Math.ceil(daysDiff / 7);
+  
+  // Day names for the left side
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  // Sum time spent per day
+  const timeSpentPerDay = {};
+  if (gameData?.posts && Array.isArray(gameData.posts)) {
+    gameData.posts.forEach(post => {
+      if (post.createdAt) {
+        const postDate = new Date(post.createdAt).toDateString();
+        
+        // Get time spent - check both HoursSpent and timeSpentOnAsset
+        let timeSpent = 0;
+        if (post.postType === 'artlog' && post.timeSpentOnAsset) {
+          timeSpent = post.timeSpentOnAsset;
+        } else if (post.HoursSpent) {
+          timeSpent = post.HoursSpent;
+        } else if (post.hoursSpent) {
+          timeSpent = post.hoursSpent;
+        } else if (post.minutesSpent) {
+          timeSpent = post.minutesSpent / 60; // Convert minutes to hours
+        }
+        
+        timeSpentPerDay[postDate] = (timeSpentPerDay[postDate] || 0) + timeSpent;
+      }
+    });
+  }
+  
+  // Function to get activity level (0-4) based on time spent
+  const getActivityLevel = (dateString) => {
+    const hoursSpent = timeSpentPerDay[dateString] || 0;
+    if (hoursSpent === 0) return 0;
+    if (hoursSpent < 1) return 1;      // Less than 1 hour
+    if (hoursSpent < 3) return 2;      // 1-3 hours
+    if (hoursSpent < 6) return 3;      // 3-6 hours
+    return 4;                          // 6+ hours
+  };
+
+  // Handle cell click - expand devlogs and scroll to them
+  const handleCellClick = (cellDate) => {
+    if (setSelectedView && setExpandedDevlogs) {
+      // Switch to Devlogs view and expand it
+      setSelectedView('Devlogs');
+      setExpandedDevlogs(true);
+      
+      // Scroll to the devlogs section after a short delay to allow state update
+      setTimeout(() => {
+        // Try to find posts for this specific date first
+        const clickedDateString = cellDate.toDateString();
+        const datePosts = document.querySelectorAll(`[data-post-date="${clickedDateString}"]`);
+        
+        if (datePosts.length > 0) {
+          // Scroll to the first post for this date
+          datePosts[0].scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        } else {
+          // Fallback: scroll to devlogs section
+          const devlogsSection = document.querySelector('[data-view="Devlogs"]');
+          if (devlogsSection) {
+            devlogsSection.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }
+        }
+      }, 200); // Increased delay to ensure state updates are complete
+    }
+  };
+  
+  // Generate grid data
+  const gridData = [];
+  for (let week = 0; week < weeksDiff; week++) {
+    const weekData = [];
+    for (let day = 0; day < 7; day++) {
+      // Calculate the actual date for this cell
+      const cellDate = new Date(startDate);
+      cellDate.setDate(startDate.getDate() + (week * 7) + day);
+      
+      // Skip if this date is after cutoff
+      if (cellDate > cutoffDate) {
+        weekData.push(null);
+      } else {
+        const dateString = cellDate.toDateString();
+        const activityLevel = getActivityLevel(dateString);
+        weekData.push({
+          date: cellDate,
+          level: activityLevel,
+          isFuture: cellDate > today // Mark if it's in the future
+        });
+      }
+    }
+    gridData.push(weekData);
+  }
+  
+  return (
+    <div style={{
+      width: "100%",
+      maxWidth: "800px",
+      border: "1px solid rgba(0, 0, 0, 0.18)",
+      borderRadius: "10px",
+      background: "rgba(255, 255, 255, 0.8)",
+      padding: "16px",
+      marginTop: "16px"
+    }}>
+
+      
+      {/* Grid Container */}
+      <div style={{
+        display: 'flex',
+        gap: '2px',
+        alignItems: 'flex-start'
+      }}>
+        {/* Day Labels */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2px',
+          marginRight: '8px'
+        }}>
+          {dayNames.map((day, index) => (
+            <div key={day} style={{
+              height: '10px',
+              fontSize: '9px',
+              color: '#666',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              paddingRight: '4px',
+              width: '24px'
+            }}>
+              {index % 2 === 1 ? day : ''} {/* Only show every other day to save space */}
+            </div>
+          ))}
+        </div>
+        
+        {/* Contribution Grid */}
+        <div style={{
+          display: 'flex',
+          gap: '2px',
+          flex: 1
+        }}>
+          {gridData.map((week, weekIndex) => (
+            <div key={weekIndex} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px'
+            }}>
+              {week.map((day, dayIndex) => {
+                if (!day) {
+                  return (
+                    <div key={`${weekIndex}-${dayIndex}`} style={{
+                      width: '10px',
+                      height: '10px',
+                      backgroundColor: 'transparent'
+                    }} />
+                  );
+                }
+                
+                // Check if this is today
+                const isToday = day.date.toDateString() === today.toDateString();
+                
+                // Get color based on activity level and date status
+                const getCellColor = () => {
+                  if (isToday) return '#58a6ff'; // Light blue for today
+                  if (day.isFuture) return '#d1d5da'; // Darker grey for future dates
+                  
+                  // Green shades based on activity level
+                  const greenShades = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+                  return greenShades[day.level] || '#ebedf0';
+                };
+                
+                return (
+                  <div
+                    key={`${weekIndex}-${dayIndex}`}
+                    onClick={() => handleCellClick(day.date)}
+                    style={{
+                      width: '10px',
+                      height: '10px',
+                      backgroundColor: getCellColor(),
+                      border: '0.5px solid rgba(27, 31, 36, 0.06)',
+                      borderRadius: '2px',
+                      cursor: 'pointer',
+                      transition: 'transform 0.1s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'scale(1.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'scale(1)';
+                    }}
+                    title={day.date.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) + (day.level > 0 ? ` - ${(timeSpentPerDay[day.date.toDateString()] || 0).toFixed(1)} hours` : '') + ' (Click to view devlogs)'}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Legend */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        marginTop: '8px',
+        fontSize: '9px',
+        color: '#666'
+      }}>
+        <span>Less</span>
+        <div style={{ display: 'flex', gap: '1px' }}>
+          {[0, 1, 2, 3, 4].map((level) => {
+            const greenShades = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+            return (
+              <div
+                key={level}
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  backgroundColor: greenShades[level],
+                  border: '0.5px solid rgba(27, 31, 36, 0.06)',
+                  borderRadius: '2px'
+                }}
+              />
+            );
+          })}
+        </div>
+        <span>More</span>
+      </div>
+    </div>
+  );
+}
+
 // Journal Post Renderer - renders post content without profile header
         function CommentsSection({ token, commentText, setCommentText, commentStarRating, setCommentStarRating, isSubmittingComment, setIsSubmittingComment, feedback, gameData, onCommentSubmitted }) {
   const [feedbackWithProfiles, setFeedbackWithProfiles] = useState([]);
@@ -923,7 +1172,11 @@ function FeedbackModal({ gameId, game, onClose, token, slackProfile }) {
           setIsSent(false);
         }, 1500);
       } else {
-        setSubmitMessage(data.message || "Failed to send feedback");
+        if (data.message === "Invalid token") {
+          setSubmitMessage("You're not logged in, so you cannot make a yap");
+        } else {
+          setSubmitMessage(data.message || "Failed to send feedback");
+        }
       }
     } catch (error) {
       console.error("Error sending feedback:", error);
@@ -1553,6 +1806,13 @@ export default function GamesPage({ gameData, error }) {
             <p style={{marginTop: 16, marginBottom: 8}}>{gameData.description}</p>
           )}
 
+          {/* Commit Graph Component */}
+          <CommitGraph 
+            gameData={gameData} 
+            setSelectedView={setSelectedView}
+            setExpandedDevlogs={setExpandedDevlogs}
+          />
+
           {/* View Selector with Paw and Feedback Buttons */}
           <div style={{
             display: "flex",
@@ -1768,8 +2028,9 @@ export default function GamesPage({ gameData, error }) {
           </div>
 
           {/* Devlogs View */}
-          {selectedView === "Devlogs" && (
-            <>
+          <div data-view="Devlogs">
+            {selectedView === "Devlogs" && (
+              <>
               {Array.isArray(gameData?.posts) && gameData.posts.length > 0 ? (() => {
                 const devlogPosts = gameData.posts.filter(post => post.postType !== 'artlog');
                 const { recentPosts, olderPosts } = groupPostsByLastReviewed(devlogPosts);
@@ -1965,7 +2226,7 @@ export default function GamesPage({ gameData, error }) {
                           <span>{recentTimeSpent.toFixed(2)} hours</span>
                         </div>
                           {recentPosts.map((p, pIdx) => (
-                            <div key={p.id || pIdx}>
+                            <div key={p.id || pIdx} data-post-date={new Date(p.createdAt).toDateString()}>
                               {pIdx > 0 && (
                                 <div style={{
                                   height: "1px",
@@ -2002,7 +2263,7 @@ export default function GamesPage({ gameData, error }) {
                     
                     {/* Older posts */}
                     {olderPosts.map((p, pIdx) => (
-                        <div key={p.id || pIdx}>
+                        <div key={p.id || pIdx} data-post-date={new Date(p.createdAt).toDateString()}>
                           {(pIdx > 0 || recentPosts.length > 0) && (
                             <div style={{
                               height: "1px",
@@ -2068,6 +2329,7 @@ export default function GamesPage({ gameData, error }) {
 
             </>
           )}
+          </div>
 
           {/* Artlogs View */}
           {selectedView === "Artlogs" && (
@@ -2267,7 +2529,7 @@ export default function GamesPage({ gameData, error }) {
                           <span>{recentTimeSpent.toFixed(2)} hours</span>
                         </div>
                           {recentPosts.map((p, pIdx) => (
-                            <div key={p.id || pIdx}>
+                            <div key={p.id || pIdx} data-post-date={new Date(p.createdAt).toDateString()}>
                               {pIdx > 0 && (
                                 <div style={{
                                   height: "1px",
@@ -2304,7 +2566,7 @@ export default function GamesPage({ gameData, error }) {
                     
                     {/* Older posts */}
                     {olderPosts.map((p, pIdx) => (
-                        <div key={p.id || pIdx}>
+                        <div key={p.id || pIdx} data-post-date={new Date(p.createdAt).toDateString()}>
                           {(pIdx > 0 || recentPosts.length > 0) && (
                             <div style={{
                               height: "1px",
