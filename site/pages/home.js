@@ -16,7 +16,7 @@ export async function getStaticProps() {
       ? 'https://shiba.hackclub.com' 
       : 'http://localhost:3000';
     
-    const response = await fetch(`${baseUrl}/api/GetAllGames?build=true&full=true`);
+    const response = await fetch(`${baseUrl}/api/GetAllGames?build=true`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch games');

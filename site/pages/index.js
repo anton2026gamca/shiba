@@ -344,8 +344,8 @@ export async function getStaticProps() {
   try {
     // Use local API in development, production API in production
     const apiUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://shiba.hackclub.com/api/GetAllGames?build=true&full=true'
-      : 'http://localhost:3000/api/GetAllGames?build=true&full=true';
+      ? 'https://shiba.hackclub.com/api/GetAllGames?build=true'
+      : 'http://localhost:3000/api/GetAllGames?build=true';
 
     const response = await fetch(apiUrl);
     

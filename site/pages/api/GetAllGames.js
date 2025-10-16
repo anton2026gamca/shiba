@@ -319,10 +319,16 @@ export default async function handler(req, res) {
         
         return {
           id: rec.id,
+          name: fields.Name || '',
           Name: fields.Name || '',
+          description: fields.Description || '',
           Description: fields.Description || '',
+          thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url ? fields.Thumbnail[0].url : '',
           Thumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url ? fields.Thumbnail[0].url : '',
+          animatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url ? fields.AnimatedBackground[0].url : '',
           AnimatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url ? fields.AnimatedBackground[0].url : '',
+          playableURL: fields?.['Playable URL'] || '',
+          slackId: slackId || '',
           'slack id': slackId || '',
           'Last Updated': fields['Last Updated'] || '',
           ShibaLink: fields.ShibaLink || '',
