@@ -3290,6 +3290,16 @@ function DetailView({
                         )
                       });
                     }}
+                    hoursSinceLastDemo={p.PlayLink === "" ? 0 : (() => {
+                      var sinceLastDemo = p.HoursSpent;
+                      for (let i = pIdx + 1; i < game.posts.length; i++) {
+                        const post = game.posts[i];
+                        if (post.PlayLink !== "")
+                          break;
+                        sinceLastDemo += post.HoursSpent;
+                      }
+                      return sinceLastDemo;
+                    })()}
                   />
                 </div>
               ))}

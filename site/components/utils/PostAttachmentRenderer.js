@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 const PlayGameComponent = dynamic(() => import("@/components/utils/playGameComponent"), { ssr: false });
 
-export default function PostAttachmentRenderer({ content, attachments, playLink, gameName, thumbnailUrl, slackId, createdAt, token, onPlayCreated, badges, HoursSpent, gamePageUrl, postType, timelapseVideoId, githubImageLink, timeScreenshotId, hoursSpent, minutesSpent, postId, timeSpentOnAsset, currentUserProfile, onTimeUpdated, compact = false, onGameStart, onGameEnd, activeGameId, isFromMainPage = false, gitChanges }) {
+export default function PostAttachmentRenderer({ content, attachments, playLink, gameName, thumbnailUrl, slackId, createdAt, token, onPlayCreated, badges, HoursSpent, gamePageUrl, postType, timelapseVideoId, githubImageLink, timeScreenshotId, hoursSpent, minutesSpent, postId, timeSpentOnAsset, currentUserProfile, onTimeUpdated, compact = false, onGameStart, onGameEnd, activeGameId, isFromMainPage = false, gitChanges, hoursSinceLastDemo = 0 }) {
   const [slackProfile, setSlackProfile] = useState(null);
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [editHours, setEditHours] = useState(0);
@@ -2761,6 +2761,16 @@ export default function PostAttachmentRenderer({ content, attachments, playLink,
                       <span>
                         {Math.floor(HoursSpent) > 0 ? `${Math.floor(HoursSpent)}hr ` : ''}{Math.round((HoursSpent % 1) * 60)}min logged
                       </span>
+                      {hoursSinceLastDemo > 0
+                        ? (
+                          <>
+                            <span style={{ fontSize: 8 }}>●</span>
+                            <span style={{ color: hoursSinceLastDemo > 10 ? 'red' : 'green' }}>
+                              <strong>{hoursSinceLastDemo >= 1 ? `${Math.floor(hoursSinceLastDemo)}hr ` : ''}{`${Math.round((hoursSinceLastDemo % 1) * 60)}min`}</strong> since last demo
+                            </span>
+                          </>
+                        ) : null
+                      }
                       <span style={{ fontSize: 8 }}>●</span>
                     </>
                   ))
