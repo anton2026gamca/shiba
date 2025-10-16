@@ -239,7 +239,7 @@ async function getPlaytestsForUser(userId) {
         createdAt: playtest.fields['Created At'] || playtest.createdTime,
         instructions: playtest.fields.Instructions || '',
         gameName: gameDetails.gameName || playtest.fields.GameName || playtest.fields['Game Name'] || '',
-        gameLink: gameDetails.playableURL || playtest.fields.GameLink || playtest.fields['Game Link'] || '',
+        gameLink: gameDetails.playableURL || (Array.isArray(playtest.fields.GameLink) ? playtest.fields.GameLink[0] : playtest.fields.GameLink) || (Array.isArray(playtest.fields['Game Link']) ? playtest.fields['Game Link'][0] : playtest.fields['Game Link']) || '',
         gameThumbnail: gameDetails.gameThumbnail || '',
         gameAnimatedBackground: gameDetails.gameAnimatedBackground || '',
         ownerSlackId: gameDetails.ownerSlackId || '',
