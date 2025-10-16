@@ -176,6 +176,7 @@ async function getPlaytestsForUser(userId) {
       let gameDetails = {
         gameName: '',
         gameThumbnail: '',
+        gameAnimatedBackground: '',
         playableURL: ''
       };
       
@@ -195,6 +196,13 @@ async function getPlaytestsForUser(userId) {
               gameDetails.gameThumbnail = gameData.fields.Thumbnail[0]?.url || '';
             } else if (typeof gameData.fields.Thumbnail === 'string') {
               gameDetails.gameThumbnail = gameData.fields.Thumbnail;
+            }
+            
+            // Handle animated background - it might be an array of attachment objects
+            if (gameData.fields.AnimatedBackground && Array.isArray(gameData.fields.AnimatedBackground)) {
+              gameDetails.gameAnimatedBackground = gameData.fields.AnimatedBackground[0]?.url || '';
+            } else if (typeof gameData.fields.AnimatedBackground === 'string') {
+              gameDetails.gameAnimatedBackground = gameData.fields.AnimatedBackground;
             }
             
             // Get the game owner's slack ID
@@ -233,6 +241,7 @@ async function getPlaytestsForUser(userId) {
         gameName: gameDetails.gameName || playtest.fields.GameName || playtest.fields['Game Name'] || '',
         gameLink: gameDetails.playableURL || playtest.fields.GameLink || playtest.fields['Game Link'] || '',
         gameThumbnail: gameDetails.gameThumbnail || '',
+        gameAnimatedBackground: gameDetails.gameAnimatedBackground || '',
         ownerSlackId: gameDetails.ownerSlackId || '',
         HoursSpent: playtest.fields?.HoursSpent || 0,
         // Rating data for completed playtests
