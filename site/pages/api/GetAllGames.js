@@ -315,22 +315,23 @@ export default async function handler(req, res) {
       const games = allGames.map((rec) => {
         const fields = rec.fields || {};
         const slackId = Array.isArray(fields['slack id']) ? fields['slack id'][0] : fields['slack id'];
+        const gameName = fields.Name || '';
         const creatorProfile = creatorProfiles.get(slackId) || { displayName: '', image: '' };
         
         return {
           id: rec.id,
-          name: fields.Name || '',
-          Name: fields.Name || '',
+          name: gameName,
           description: fields.Description || '',
-          Description: fields.Description || '',
-          thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url ? fields.Thumbnail[0].url : '',
-          Thumbnail: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url ? fields.Thumbnail[0].url : '',
-          animatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url ? fields.AnimatedBackground[0].url : '',
-          AnimatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url ? fields.AnimatedBackground[0].url : '',
+          thumbnailUrl: Array.isArray(fields.Thumbnail) && fields.Thumbnail[0]?.url 
+            ? fields.Thumbnail[0].url 
+            : '',
+          animatedBackground: Array.isArray(fields.AnimatedBackground) && fields.AnimatedBackground[0]?.url 
+            ? fields.AnimatedBackground[0].url 
+            : '',
           playableURL: fields?.['Playable URL'] || '',
-          slackId: slackId || '',
-          'slack id': slackId || '',
-          'Last Updated': fields['Last Updated'] || '',
+          GitHubURL: fields?.GitHubURL || fields?.GithubURL || '',
+          lastUpdated: fields?.['Last Updated'] || rec.createdTime || '',
+          slackId,
           ShibaLink: fields.ShibaLink || '',
           creatorDisplayName: creatorProfile.displayName,
           creatorImage: creatorProfile.image,
