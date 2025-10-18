@@ -1473,6 +1473,7 @@ function DetailView({
             />
             <textarea
               className="nice-textarea"
+              style={{ resize: 'vertical' }}
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
