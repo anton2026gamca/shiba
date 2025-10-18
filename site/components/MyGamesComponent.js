@@ -1780,39 +1780,7 @@ function DetailView({
                 lineHeight: 1.5,
                 // fontStyle: "italic"
               }}>
-                {[
-                  ...game.Feedback,
-                  // "Additional Feedback:\n" +
-                  "**Markdown Test:** This feedback demonstrates all markdown features!\n" +
-                  "**Bold text** and __also bold__\n" +
-                  "*Italic text* and _also italic_\n" +
-                  "***Bold and italic combined***\n" +
-                  "~~Strikethrough text~~\n" +
-                  "==Highlighted text==\n" +
-                  "`inline code example`\n" +
-                  "[Click here for Hack Club](https://hackclub.com)\n" +
-                  "> This is a blockquote with some wise words\n" +
-                  "Emojis: :fire: :rocket: :sparkles: :tada: :100: :thumbsup: :star:\n" +
-                  "Mix them: **Bold with :fire:** and *italic with :rocket:* and `code with :sparkles:`\n" + 
-                  "Here is a list:\n" +
-                  "- Item 1\n" +
-                  "- Item 2\n" +
-                  "- Item 3\n" +
-                  "And a numbered list:\n" +
-                  "1. First\n" + 
-                  "2. Second\n" +
-                  "3. Third\n" + 
-                  "Multiline code block:\n" +
-                  "```\n" +
-                  "function helloWorld() {\n" +
-                  "  console.log('**Hello, world!**');\n" +
-                  "}\n" +
-                  "```\n" + 
-                  "---\n" +
-                  "<div style=\"color: red;\">As you can see HTML tags don't get rendered</div>\n" + 
-                  "Fun:\n" +
-                  "_Works_ in ==category== sections **too**!\n"
-                ].map((feedback, index) => {
+                {game.Feedback.map((feedback, index) => {
                   // Skip rendering if feedback is empty, but keep original index for responses
                   if (!feedback || typeof feedback !== 'string' || !feedback.trim()) {
                     return null;
