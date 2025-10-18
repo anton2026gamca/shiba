@@ -696,6 +696,9 @@ function DetailView({
   const [slackProfile, setSlackProfile] = useState(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const artlogFormRef = useRef(null);
+  const [markdownPreviewMode, setMarkdownPreviewMode] = useState(false); // Toggle for markdown preview
+  const [markdownPreviewContent, setMarkdownPreviewContent] = useState(null); // Cached preview content
+  
   const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB limit for misc files
   const totalAttachmentBytes = useMemo(
     () =>
@@ -2642,6 +2645,62 @@ function DetailView({
               await uploadFilesToS3(incoming);
             }}
           >
+            <div style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              padding: '8px 10px',
+              borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+              background: 'rgba(255, 255, 255, 0.65)'
+            }}>
+              <div style={{
+                display: 'flex',
+                gap: '4px',
+                border: '1px solid rgba(0, 0, 0, 0.18)',
+                borderRadius: '6px',
+                padding: '2px',
+                background: 'rgba(255, 255, 255, 0.85)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setMarkdownPreviewMode(false)}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    background: !markdownPreviewMode ? 'linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)' : 'transparent',
+                    color: !markdownPreviewMode ? '#fff' : 'rgba(0, 0, 0, 0.7)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Raw
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMarkdownPreviewContent(postContent.trim() ? renderMarkdownText(postContent) : null);
+                    setMarkdownPreviewMode(true);
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    background: markdownPreviewMode ? 'linear-gradient(180deg, #ff8ec3 0%, #ff6fa5 100%)' : 'transparent',
+                    color: markdownPreviewMode ? '#fff' : 'rgba(0, 0, 0, 0.7)',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Preview
+                </button>
+              </div>
+            </div>
+
+            {/* Textarea or Preview */}
             <textarea
               className="moments-textarea"
               placeholder={
@@ -2658,6 +2717,9 @@ function DetailView({
                   postType === "ship" && !isProfileComplete
                     ? "not-allowed"
                     : "text",
+                borderRadius: 0,
+                borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+                display: markdownPreviewMode ? 'none' : 'block'
               }}
               onPaste={async (e) => {
                 // Only handle image paste for moments, not ships
@@ -2702,6 +2764,26 @@ function DetailView({
                 // For non-image items, let the default paste behavior happen
               }}
             />
+            <div 
+              className="moments-textarea"
+              style={{
+                minHeight: '120px',
+                overflowY: 'auto',
+                padding: '10px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                borderRadius: 0,
+                borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+                fontSize: '14px',
+                color: '#333',
+                display: markdownPreviewMode ? 'block' : 'none'
+              }}
+            >
+              {markdownPreviewContent || (
+                <span style={{ opacity: 0.5, fontStyle: 'italic' }}>
+                  {renderMarkdownText("Nothing to preview yet. Switch to `Raw` to write your post.")}
+                </span>
+              )}
+            </div>
             {/* Previews */}
             {Array.isArray(postFiles) && postFiles.length > 0 && (
               <div className="moments-previews">
@@ -3414,8 +3496,6 @@ function DetailView({
           padding: 10px;
           outline: none;
           border: 0;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-          border-radius: 10px 10px 0 0;
           background: transparent;
         }
         .moments-footer {
