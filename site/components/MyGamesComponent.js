@@ -652,6 +652,176 @@ function DetailView({
   myGames,
   setMyGames,
 }) {
+  // Markdown rendering function for one line (basic markdown support)
+  const renderMarkdownLine = (text) => {
+    if (!text) return text;
+    
+    // Escape HTML tags
+    let result = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    
+    const isUnorderedList = /^[-*]\s/.test(result);
+    const isOrderedList = /^\d+\.\s/.test(result);
+    if (isUnorderedList) {
+      result = result.replace(/^[-*]\s/, '&nbsp;&nbsp;&nbsp;&nbsp;• ');
+    } else if (isOrderedList) {
+      result = result.replace(/^(\d+\.\s)/g, '&nbsp;&nbsp;&nbsp;&nbsp;$1');
+    }
+    
+    // Bold: **text** or __text__
+    result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    result = result.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    
+    // Italic: *text* or _text_
+    result = result.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    result = result.replace(/_(.+?)_/g, '<em>$1</em>');
+    
+    // Bold + Italic: ***text*** or ___text___
+    result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    result = result.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
+    
+    // Strikethrough: ~~text~~
+    result = result.replace(/~~(.+?)~~/g, '<del style="opacity: 0.7;">$1</del>');
+    
+    // Highlight: ==text==
+    result = result.replace(/==(.+?)==/g, '<mark style="background-color: #fff694ff; padding: 2px 4px; border-radius: 3px;">$1</mark>');
+
+    // Code: `code`
+    result = result.replace(/`(.+?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">$1</code>');
+    
+    // Links: [text](url)
+    result = result.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #ff6fa5; text-decoration: underline; font-weight: 500;">$1</a>');
+    
+    // Blockquote: > text (check for escaped &gt;)
+    if (result.startsWith('&gt; ')) {
+      result = result.substring(5);
+      result = `<blockquote style="border-left: 3px solid #ff6fa5; background: #ff6fa53b; padding-left: 12px; margin: 8px 0; opacity: 0.8; font-style: italic;">${result}</blockquote>`;
+    }
+    
+    // Horizontal rule: --- or ***
+    result = result.replace(/^---$/g, '<hr style="border: none; border-top: 1px solid rgba(0,0,0,0.2); margin: 12px 0;">');
+    result = result.replace(/^\*\*\*$/g, '<hr style="border: none; border-top: 1px solid rgba(0,0,0,0.2); margin: 12px 0;">');
+    
+    // Emoji shortcodes: :emoji:
+    const emojiMap = {
+      ':smile:': '😊', ':fire:': '🔥', ':star:': '⭐', ':check:': '✅',
+      ':x:': '❌', ':warning:': '⚠️', ':thumbsup:': '👍', ':thumbsdown:': '👎', ':eyes:': '👀',
+      ':rocket:': '🚀', ':sparkles:': '✨', ':tada:': '🎉', ':100:': '💯', ':thinking:': '🤔',
+      ':clap:': '👏', ':muscle:': '💪', ':brain:': '🧠', ':bug:': '🐛'
+    };
+    Object.keys(emojiMap).forEach(key => {
+      result = result.replace(new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), emojiMap[key]);
+    });
+    
+    return <span dangerouslySetInnerHTML={{ __html: result }} />;
+  };
+
+  // Render multiline markdown text
+  const renderMarkdownText = (text) => {
+    if (!text) return null;
+    
+    const lines = text.split('\n');
+    const groups = [];
+    let currentGroup = [];
+    let isListGroup = false;
+    let isCodeBlock = false;
+    let codeBlockLines = [];
+    
+    lines.forEach((line) => {
+      if (line.trim() === '```') {
+        if (!isCodeBlock) {
+          if (currentGroup.length > 0) {
+            groups.push({ type: isListGroup ? 'list' : 'text', lines: currentGroup });
+            currentGroup = [];
+            isListGroup = false;
+          }
+          isCodeBlock = true;
+          codeBlockLines = [];
+        } else {
+          groups.push({ type: 'codeblock', lines: codeBlockLines });
+          codeBlockLines = [];
+          isCodeBlock = false;
+        }
+        return;
+      }
+      
+      if (isCodeBlock) {
+        codeBlockLines.push(line);
+        return;
+      }
+      
+      const isListItem = /^[-*]\s/.test(line) || /^\d+\.\s/.test(line);
+      if (isListItem) {
+        if (!isListGroup) {
+          if (currentGroup.length > 0) {
+            groups.push({ type: 'text', lines: currentGroup });
+            currentGroup = [];
+          }
+          isListGroup = true;
+        }
+        currentGroup.push(line);
+      } else {
+        if (isListGroup) {
+          groups.push({ type: 'list', lines: currentGroup });
+          currentGroup = [];
+          isListGroup = false;
+        }
+        currentGroup.push(line);
+      }
+    });
+    
+    if (currentGroup.length > 0) {
+      groups.push({ type: isListGroup ? 'list' : 'text', lines: currentGroup });
+    }
+    
+    if (codeBlockLines.length > 0) {
+      groups.push({ type: 'codeblock', lines: codeBlockLines });
+    }
+    
+    return (
+      <div>
+        {groups.map((group, groupIdx) => {
+          if (group.type === 'codeblock') {
+            return (
+              <pre key={groupIdx} style={{ 
+                background: 'rgba(0,0,0,0.1)', 
+                padding: '8px', 
+                borderRadius: '4px', 
+                overflowX: 'auto', 
+                fontFamily: 'monospace', 
+                fontSize: '0.9em',
+                marginBottom: '8px'
+              }}>
+                {group.lines.join('\n')}
+              </pre>
+            );
+          } else if (group.type === 'list') {
+            return (
+              <p key={groupIdx} style={{ marginBottom: '8px' }}>
+                {group.lines.map((line, i) => (
+                  <span key={i}>
+                    {renderMarkdownLine(line)}
+                    {i < group.lines.length - 1 && <br />}
+                  </span>
+                ))}
+              </p>
+            );
+          } else {
+            return group.lines.map((line, i) => (
+              <p key={`${groupIdx}-${i}`} style={{ marginBottom: '8px' }}>
+                {renderMarkdownLine(line)}
+              </p>
+            ));
+          }
+        })}
+      </div>
+    );
+  };
+
   const [name, setName] = useState(game?.name || "");
   const [description, setDescription] = useState(game?.description || "");
   const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -1773,9 +1943,41 @@ function DetailView({
                 fontSize: 13,
                 color: "#555",
                 lineHeight: 1.5,
-                fontStyle: "italic"
+                // fontStyle: "italic"
               }}>
-                {game.Feedback.map((feedback, index) => {
+                {[
+                  ...game.Feedback,
+                  // "Additional Feedback:\n" +
+                  "**Markdown Test:** This feedback demonstrates all markdown features!\n" +
+                  "**Bold text** and __also bold__\n" +
+                  "*Italic text* and _also italic_\n" +
+                  "***Bold and italic combined***\n" +
+                  "~~Strikethrough text~~\n" +
+                  "==Highlighted text==\n" +
+                  "`inline code example`\n" +
+                  "[Click here for Hack Club](https://hackclub.com)\n" +
+                  "> This is a blockquote with some wise words\n" +
+                  "Emojis: :fire: :rocket: :sparkles: :tada: :100: :thumbsup: :star:\n" +
+                  "Mix them: **Bold with :fire:** and *italic with :rocket:* and `code with :sparkles:`\n" + 
+                  "Here is a list:\n" +
+                  "- Item 1\n" +
+                  "- Item 2\n" +
+                  "- Item 3\n" +
+                  "And a numbered list:\n" +
+                  "1. First\n" + 
+                  "2. Second\n" +
+                  "3. Third\n" + 
+                  "Multiline code block:\n" +
+                  "```\n" +
+                  "function helloWorld() {\n" +
+                  "  console.log('**Hello, world!**');\n" +
+                  "}\n" +
+                  "```\n" + 
+                  "---\n" +
+                  "<div style=\"color: red;\">As you can see HTML tags don't get rendered</div>\n" + 
+                  "Fun:\n" +
+                  "_Works_ in ==category== sections **too**!\n"
+                ].map((feedback, index) => {
                   // Skip rendering if feedback is empty, but keep original index for responses
                   if (!feedback || typeof feedback !== 'string' || !feedback.trim()) {
                     return null;
@@ -1862,11 +2064,7 @@ function DetailView({
                                       <div key={partIndex} style={{
                                         marginBottom: '8px'
                                       }}>
-                                        {part.split('\n').map((line, i) => (
-                                          <p key={i} style={{ marginBottom: '8px' }}>
-                                            {line}
-                                          </p>
-                                        ))}
+                                        {renderMarkdownText(part)}
                                       </div>
                                     );
                                   } else {
@@ -1900,12 +2098,7 @@ function DetailView({
                                           />
                                           <strong>{part.category}</strong>
                                         </div>
-                                        {part.content.split('\n').map((line, i) => (
-                                          <p key={i} style={{ marginBottom: '8px' }}>
-                                            {line}
-                                            {i < part.content.split('\n').length - 1 ? <br /> : null}
-                                          </p>
-                                        ))}
+                                        {renderMarkdownText(part.content)}
                                       </div>
                                     );
                                   }
@@ -1913,8 +2106,8 @@ function DetailView({
                               </div>
                             );
                           } else {
-                            // No categories found, display as regular text
-                            return `"${feedback}"`;
+                            // No categories found, display as regular text with markdown support
+                            return renderMarkdownText(feedback);
                           }
                         })()}
                       </div>
