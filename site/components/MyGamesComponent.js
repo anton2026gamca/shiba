@@ -2674,7 +2674,7 @@ function DetailView({
               placeholder={
                 postType === "ship" && !isProfileComplete
                   ? `Complete missing profile fields to unlock demo posting: ${profileCompletionData.missingFields.join(", ")}`
-                  : "Write what you added here..."
+                  : "Write what you added here...\n\n(Basic Markdown supported!)"
               }
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
